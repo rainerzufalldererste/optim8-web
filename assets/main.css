@@ -69,7 +69,7 @@ html, body {
     display: inline-block;
     height: 100%;
     width: 2pt;
-    background: #444;
+    background: #666;
     cursor: ew-resize;
     margin: 0;
 }
@@ -78,27 +78,27 @@ html, body {
     display: inline-block;
     width: 100%;
     height: 2pt;
-    background: #444;
+    background: #666;
     cursor: ns-resize;
     margin: 0;
 }
 
-.switch {
+.selector .switch {
     position: relative;
     display: inline-block;
     width: 35pt;
     height: calc(100% - 6pt);
-    margin: 2pt 8pt 2pt 0pt;
+    margin: 2pt 8pt 2pt 4pt;
     top: -2pt;
-  }
+}
 
-.switch input {
+.selector .switch input {
   opacity: 0;
   width: 0;
   height: 0;
 }
 
-.slider {
+.selector .switch .slider {
     position: absolute;
     cursor: pointer;
     top: 0;
@@ -111,7 +111,7 @@ html, body {
     border-radius: 20pt;
 }
 
-.slider::before {
+.selector .switch .slider::before {
     position: absolute;
     content: "";
     height: 15pt;
@@ -124,15 +124,15 @@ html, body {
     border-radius: 50%;
   }
 
-input:checked + .slider {
+.selector input:checked + .slider {
     background-color: #4E8CBF;
 }
 
-input:focus + .slider {
+.selector input:focus + .slider {
     box-shadow: 0 0 1pt #4E8CBF;
 }
 
-input:checked + .slider:before {
+.selector .switch input:checked + .slider:before {
     -webkit-transform: translateX(14pt);
     -ms-transform: translateX(14pt);
     transform: translateX(14pt);
@@ -154,7 +154,7 @@ input:checked + .slider:before {
 
 .selector select {
     width: 75pt;
-    margin: 2pt 0pt 2pt 8pt;
+    margin: 4pt -6pt 2pt 8pt;
     height: calc(100% - 8pt);
     padding: 2pt 10pt;
     background: #424242;
@@ -162,7 +162,7 @@ input:checked + .slider:before {
     border-radius: 2pt;
     color: #c6c6c6;
     display: inline-block;
-}
+  }
 
 .selector select optgroup {
     font-style: normal;

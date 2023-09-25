@@ -59,12 +59,59 @@
                         <option value="gcc-13">gcc 13</option>
                       </optgroup>
                       <optgroup label="Clang x64">
-                        <option value="clang-16">clang 16</option>
+                        <option value="clang-16" selected="selected">clang 16</option>
                       </optgroup>
                     </select>
-                    <input id="comp_opt" type="text" value="-Ofast -O3 -Wall"/>
+                    <select id="opt_lvl">
+                        <option value="O0">-O0</option>
+                        <option value="O1">-O1</option>
+                        <option value="O2">-O2</option>
+                        <option value="O3">-O3</option>
+                        <option value="O4">-O4</option>
+                        <option value="Of" selected="selected">-Ofast</option>
+                        <option value="Os">-Os</option>
+                        <option value="Oz">-Oz</option>
+                        <option value="Og">-Og</option>
+                    </select>
+                    <select id="march">
+                        <option value="none" selected="selected">none</option>
+                      <optgroup label="Intel">
+                        <option value="adl">Alderlake</option>
+                        <option value="brw">Broadwell</option>
+                        <option value="cnl">Cannonlake</option>
+                        <option value="ccl">Cascadelake</option>
+                        <option value="cpl">Cooperlake</option>
+                        <option value="elr">EmeraldRapids</option>
+                        <option value="gmt">Goldmont</option>
+                        <option value="gmp">GoldmontPlus</option>
+                        <option value="gdr">GrandRidge</option>
+                        <option value="gtr">GraniteRapids</option>
+                        <option value="hsw">Haswell</option>
+                        <option value="ilc">IcelakeClient</option>
+                        <option value="lcs">IcelakeServer</option>
+                        <option value="ivb">IvyBridge</option>
+                        <option value="mtl">Meteorlake</option>
+                        <option value="rtl">Raptorlake</option>
+                        <option value="rkl">Rocketlake</option>
+                        <option value="sdb">Sandybridge</option>
+                        <option value="spr">SapphireRapids</option>
+                        <option value="srf">Sierraforest</option>
+                        <option value="svm">Silvermont</option>
+                        <option value="slc">SkylakeClient</option>
+                        <option value="slx">SkylakeX</option>
+                        <option value="sls">SkylakeServer</option>
+                        <option value="tgl">Tigerlake</option>
+                        <option value="trm">Tremont</option>
+                      </optgroup>
+                      <optgroup label="AMD">
+                        <option value="zn1">Zen1</option>
+                        <option value="zn2">Zen2</option>
+                        <option value="zn3">Zen3</option>
+                        <option value="zn4">Zen4</option>
+                      </optgroup>
+                    </select>
                     <label class="switch">
-                      <input id="zydec" type="checkbox">
+                      <input id="zydec" type="checkbox" checked="true">
                       <span class="slider"></span>
                     </label>
                 </div>
