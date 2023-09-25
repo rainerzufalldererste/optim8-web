@@ -1,0 +1,179 @@
+html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+#header {
+    height: 25pt;
+    width: 100%;
+    background: #111;
+    display: block;
+}
+
+.app_view {
+    min-width: 200pt;
+    width: 500pt;
+    height: 100%;
+    display: inline-block;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    color: #aaa;
+    font-family: 'Consolas', monospace;
+}
+
+.app_view.disasm {
+    background: #1e1e1e;
+    position: absolute;
+}
+
+.app_view.disasm .disasm, .app_view.disasm .stdout {
+    padding: 5pt 15pt;
+}
+
+.app_view.disasm .selector {
+    height: 25pt;
+    width: 100%;
+    background: #2d2d2d;
+    display: block;
+}
+
+.app_view.disasm .disasm {
+    height: 75%;
+}
+
+.app_view.disasm .stdout {
+    padding: 5pt 15pt;
+    height: 20%;
+}
+
+#app_container {
+    margin: 0;
+    background: #111;
+    width: 100vw;
+    height: calc(100% - 25pt);
+}
+
+#code_view {
+    margin: 0;
+}
+
+#header img {
+    height: 23pt;
+    margin: 1pt 5pt;
+}
+
+.h_separator {
+    display: inline-block;
+    height: 100%;
+    width: 2pt;
+    background: #444;
+    cursor: ew-resize;
+    margin: 0;
+}
+
+.v_separator {
+    display: inline-block;
+    width: 100%;
+    height: 2pt;
+    background: #444;
+    cursor: ns-resize;
+    margin: 0;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 35pt;
+    height: calc(100% - 6pt);
+    margin: 2pt 8pt 2pt 0pt;
+    top: -2pt;
+  }
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #555;
+    -webkit-transition: .4s;
+    transition: .4s;
+    border-radius: 20pt;
+}
+
+.slider::before {
+    position: absolute;
+    content: "";
+    height: 15pt;
+    width: 15pt;
+    left: 2.5pt;
+    bottom: 2pt;
+    background-color: #aaa;
+    -webkit-transition: .4s;
+    transition: .4s;
+    border-radius: 50%;
+  }
+
+input:checked + .slider {
+    background-color: #4E8CBF;
+}
+
+input:focus + .slider {
+    box-shadow: 0 0 1pt #4E8CBF;
+}
+
+input:checked + .slider:before {
+    -webkit-transform: translateX(14pt);
+    -ms-transform: translateX(14pt);
+    transform: translateX(14pt);
+    background-color: #fff;
+}
+
+.selector input[type="text"] {
+    width: 200pt;
+    margin: 2pt 2pt;
+    height: calc(100% - 8pt);
+    padding: 2pt 10pt;
+    background: #424242;
+    border: none;
+    border-radius: 2pt;
+    color: #c6c6c6;
+    display: inline-block;
+    font-family: 'Consolas', monospace;
+}
+
+.selector select {
+    width: 75pt;
+    margin: 2pt 0pt 2pt 8pt;
+    height: calc(100% - 8pt);
+    padding: 2pt 10pt;
+    background: #424242;
+    border: none;
+    border-radius: 2pt;
+    color: #c6c6c6;
+    display: inline-block;
+}
+
+.selector select optgroup {
+    font-style: normal;
+    font-weight: bold;
+    color: #fff;
+}
+
+.selector select optgroup option {
+    color: #ccc;
+}
+
+.disasm p {
+    line-height: 30%;
+}

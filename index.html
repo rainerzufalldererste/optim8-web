@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Performance Analyzer</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="icon" type="image/png" href="/assets/favicon.png">
+        <link rel="stylesheet" href="/assets/main.css">
+    </head>
+    <body>
+        <div id="header">
+            <img src="/assets/logo.png"/>
+        </div>
+        <div id="app_container">
+            <script src="monaco-editor/min/vs/loader.js"></script>
+            <div id="code_view" class="app_view"></div>
+            <script type="module">
+                var code_editor;
+
+                require.config({ paths: { 'vs': 'monaco-editor/min/vs' }});
+                require(['vs/editor/editor.main'], function() {
+                    code_editor = monaco.editor.create(document.getElementById('code_view'), {
+                        value: [
+                            '#include <stdlib.h>',
+                            '#include <stdint.h>',
+                            '',
+                            '#if defined(_MSC_VER) && !defined(__llvm__)',
+                            '#include <intrin.h>',
+                            '#else',
+                            '#include <x86intrin.h>',
+                            '#endif',
+                            '',
+                            'void foo()',
+                            '{',
+                            '  // what are we analzying today?',
+                            '}',
+                        ].join('\n'),
+                        language: 'cpp',
+                        theme: 'vs-dark',
+                        automaticLayout: true,
+                        minimap: {
+                            enabled: false
+                        },
+                        padding: {
+                          top: "15pt"
+                        }
+                    });
+
+                    code_editor.getModel().onDidChangeContent(function(event) {
+                        console.log('The content of the editor has changed!');
+                    });
+                });
+            </script>
+            <div class="h_separator"></div>
+            <div id="disasm0" class="app_view disasm">
+                <div class="selector">
+                    <select id="compiler">
+                      <optgroup label="GCC x64">
+                        <option value="gcc-13">gcc 13</option>
+                      </optgroup>
+                      <optgroup label="Clang x64">
+                        <option value="clang-16">clang 16</option>
+                      </optgroup>
+                    </select>
+                    <input id="comp_opt" type="text" value="-Ofast -O3 -Wall"/>
+                    <label class="switch">
+                      <input id="zydec" type="checkbox">
+                      <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="disasm">
+                    <p>xor rax, rax</p>
+                    <p>ret</p>
+                </div>
+                <div class="v_separator"></div>
+                <div class="stdout">
+                    Compiling...
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
