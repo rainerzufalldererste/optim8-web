@@ -42,6 +42,7 @@ html, body {
 
 .app_view.disasm .disasm {
     height: 75%;
+    overflow-x: scroll;
 }
 
 .app_view.disasm .stdout {
@@ -174,6 +175,22 @@ html, body {
     color: #ccc;
 }
 
-.disasm p {
-    line-height: 110%;
+.disasm h3.symbol {
+    font-size: 120%;
+    color: #fff;
+}
+
+.disasm p.asm_line {
+    line-height: 30%;
+    user-select: all;
+    display: block ruby;
+}
+
+.disasm p.asm_line .mnemonic {
+    margin-right: 1em;
+    color: #7498b5;
+}
+
+.disasm p.asm_line .comment {
+    color: #799e6b;
 }

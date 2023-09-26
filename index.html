@@ -19,6 +19,7 @@
                 var last_modification = Date.now();
                 var sleep_time = 3000;
                 var server_url = "http://localhost:61919/"
+                var last_dump;
 
                 function load_url(url, callback, obj) {
                   console.log('request: "' + url + '" with ' + obj);
@@ -39,6 +40,21 @@
                   xmlhttp.send(JSON.stringify(obj));
                 }
 
+                function append_element(parent, type, className, innerText) {
+                    const elem = document.createElement(type);
+                    elem.innerText = innerText;
+                    elem.className = className;
+                    parent.appendChild(elem);
+                    return elem;
+                }
+
+                function hexToBytes(hex) {
+                    let bytes = [];
+                    for (let c = 0; c < hex.length; c += 2)
+                        bytes.push(parseInt(hex.substr(c, 2), 16));
+                    return bytes;
+                }
+
                 function suggest_compile() {
                     if ((Date.now() - last_modification) >= sleep_time - 2) {
                         last_modification = Date.now();
@@ -51,13 +67,67 @@
                             var asm = document.getElementById('asm');
                             var stdout = document.getElementById('stdout');
 
+                            if (compiler_out == '')
+                                compiler_out = "Success!";
+
                             stdout.innerText = compiler_out;
-                            asm.innerHTML = objdump_out.split('\n').join('<br>');
+                            var dumplines = objdump_out.split('\n');
+                            last_dump = [];
+                            var last_sym = [];
+
+                            for (let i = 0; i < dumplines.length; i++)
+                            {
+                                let x = dumplines[i];
+
+                                if (x.startsWith('<'))
+                                {
+                                    last_sym = [];
+                                    last_sym.name = x;
+                                    last_dump.push(last_sym);
+                                }
+                                else
+                                {
+                                    let trimmed = x.trim();
+                                    let addr = x.split(':')[0];
+                                    trimmed = trimmed.substring(addr.length).trim();
+                                    addr = addr.trim();
+                                    const hex = trimmed.substr(15 * 3).trim();
+                                    const bytes = hexToBytes(hex);
+                                    const asm = trimmed.substring(15 * 3).trim().replaceAll(',', ", ").replaceAll('  ', ' ');
+                                    const mnemonic = asm.split(' ')[0];
+                                    const params = asm.substring(mnemonic.length).trim();
+                                    const beforeComment = params.split('#')[0];
+                                    const comment = params.substring(beforeComment.length);
+
+                                    last_sym.push({ 'raw': x, 'addr': addr, 'bytes': bytes, 'asm': asm, 'mnemonic': mnemonic, 'params': beforeComment, 'comment': comment });
+                                }
+                            }
+
+                            asm.innerHTML = "";
+
+                            for (let i = 0; i < last_dump.length; i++)
+                            {
+                                let sym = last_dump[i];
+
+                                append_element(asm, 'h3', 'symbol', sym.name);
+
+                                for (let j = 0; j < sym.length; j++)
+                                {
+                                    var e = append_element(asm, 'p', 'asm_line', '');
+                                    e.origin = { 'sym': i, 'line': j };
+                                    append_element(e, 'b', 'mnemonic', sym[j].mnemonic);
+                                    append_element(e, 'i', 'params', sym[j].params);
+
+                                    if (sym[j].comment)
+                                        append_element(e, 'i', 'comment', sym[j].comment);
+                                }
+                            }
                         }, { 'opt': opt, 'march': march, 'src': code_editor.getValue() });
                     }
                 }
 
                 function content_changed() {
+                    document.getElementById('stdout').innerText = "Waiting for Compile...";
                     last_modification = Date.now();
                     setTimeout(suggest_compile, sleep_time);
                 }
@@ -75,11 +145,44 @@
                             '#include <x86intrin.h>',
                             '#endif',
                             '',
-                            'int32_t foo(const int32_t a)',
+                            'void merge_lines(const uint32_t *pSourceLine, const uint32_t *pSourceLine2, const size_t length, uint32_t *pTargetLine)',
                             '{',
                             '  // what are we analzying today?',
-                            '  return a * a;',
+                            '  const __m128i lower7bits = _mm_set1_epi8(0b1111111);',
+                            '  const __m128i oneA = _mm_set1_epi64x(0x0000010001010001LL);',
+                            '  const __m128i oneB = _mm_set1_epi64x(0x0101000100000100LL);',
+                            '',
+                            '  constexpr size_t colorsPerVector = sizeof(__m128i) / sizeof(uint32_t);',
+                            '',
+                            '  for (size_t x = 0; x < length; x += 2)',
+                            '  {',
+                            '    // load two vectors from both lines of the source.',
+                            '    const __m128i line00r = _mm_loadu_si128(reinterpret_cast<const __m128i *>(pSourceLine + x * 2));',
+                            '    const __m128i line01r = _mm_loadu_si128(reinterpret_cast<const __m128i *>(pSourceLine + x * 2 + colorsPerVector));',
+                            '    const __m128i line10r = _mm_loadu_si128(reinterpret_cast<const __m128i *>(pSourceLine2 + x * 2));',
+                            '    const __m128i line11r = _mm_loadu_si128(reinterpret_cast<const __m128i *>(pSourceLine2 + x * 2 + colorsPerVector));',
+                            '',
+                            '    // dither with one (saturate to not accidentally cause an overflow with 0xFF) and divide by two.',
+                            '    const __m128i line00 = _mm_and_si128(lower7bits, _mm_srli_epi32(_mm_adds_epu8(line00r, oneA), 1));',
+                            '    const __m128i line01 = _mm_and_si128(lower7bits, _mm_srli_epi32(_mm_adds_epu8(line01r, oneB), 1));',
+                            '    const __m128i line10 = _mm_and_si128(lower7bits, _mm_srli_epi32(_mm_adds_epu8(line10r, oneB), 1));',
+                            '    const __m128i line11 = _mm_and_si128(lower7bits, _mm_srli_epi32(_mm_adds_epu8(line11r, oneA), 1));',
+                            '',
+                            '    // add, dither again and divide by two.',
+                            '    const __m128i line_0 = _mm_and_si128(lower7bits, _mm_srli_epi32(_mm_adds_epu8(_mm_add_epi8(line00, line10), oneA), 1));',
+                            '    const __m128i line_1 = _mm_and_si128(lower7bits, _mm_srli_epi32(_mm_adds_epu8(_mm_add_epi8(line01, line11), oneB), 1));',
+                            '',
+                            '    // shuffle the first and second color blocks into two separate vectors.',
+                            '    const __m128i lo = _mm_castps_si128(_mm_shuffle_ps(_mm_castsi128_ps(line_0), _mm_castsi128_ps(line_1), _MM_SHUFFLE(2, 0, 2, 0)));',
+                            '    const __m128i hi = _mm_castps_si128(_mm_shuffle_ps(_mm_castsi128_ps(line_0), _mm_castsi128_ps(line_1), _MM_SHUFFLE(3, 1, 3, 1)));',
+                            '',
+                            '    // add them.',
+                            '    const __m128i merged = _mm_add_epi8(lo, hi);',
+                            '',
+                            '    _mm_store_si128(reinterpret_cast<__m128i *>(pTargetLine + x), merged);',
+                            '  }',
                             '}',
+                            ''
                         ].join('\n'),
                         language: 'cpp',
                         theme: 'vs-dark',
@@ -89,7 +192,8 @@
                         },
                         padding: {
                           top: "15pt"
-                        }
+                        },
+                        wordWrap: 'on'
                     });
 
                     code_editor.getModel().onDidChangeContent(function(event) {
@@ -162,12 +266,11 @@
                     </label>
                 </div>
                 <div class="disasm" id="asm">
-                    xor rax, rax<br>
-                    ret
+                    Edit or Paste Code To Begin Analyzing.
                 </div>
                 <div class="v_separator"></div>
                 <div class="stdout" id="stdout">
-                    Compiling...
+                    Edit or Paste Code To Begin Analyzing.
                 </div>
             </div>
         </div>
