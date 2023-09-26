@@ -16,6 +16,51 @@
             <div id="code_view" class="app_view"></div>
             <script type="module">
                 var code_editor;
+                var last_modification = Date.now();
+                var sleep_time = 3000;
+                var server_url = "http://localhost:61919/"
+
+                function load_url(url, callback, obj) {
+                  console.log('request: "' + url + '" with ' + obj);
+                  var xmlhttp;
+                  if (window.XMLHttpRequest) { // code for IE7+, Firefox, Chrome, Opera, Safari
+                      xmlhttp = new XMLHttpRequest();
+                  }
+                  else { // code for IE6, IE5
+                      xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+                  }
+                  xmlhttp.onreadystatechange = function() {
+                      if (xmlhttp.readyState == 4 && xmlhttp.status >= 200 && xmlhttp.status < 300) {
+                          callback(JSON.parse(xmlhttp.responseText));
+                      }
+                  }
+                  xmlhttp.open("POST", url, true);
+                  xmlhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+                  xmlhttp.send(JSON.stringify(obj));
+                }
+
+                function suggest_compile() {
+                    if ((Date.now() - last_modification) >= sleep_time - 2) {
+                        last_modification = Date.now();
+                        var compiler = document.getElementById("compiler").value;
+                        var opt = document.getElementById("opt_lvl").value;
+                        var march = document.getElementById("march").value;
+                        load_url(server_url + compiler, (e) => {
+                            var compiler_out = e['compiler'];
+                            var objdump_out = e['objdump'];
+                            var asm = document.getElementById('asm');
+                            var stdout = document.getElementById('stdout');
+
+                            stdout.innerText = compiler_out;
+                            asm.innerHTML = objdump_out.split('\n').join('<br>');
+                        }, { 'opt': opt, 'march': march, 'src': code_editor.getValue() });
+                    }
+                }
+
+                function content_changed() {
+                    last_modification = Date.now();
+                    setTimeout(suggest_compile, sleep_time);
+                }
 
                 require.config({ paths: { 'vs': 'monaco-editor/min/vs' }});
                 require(['vs/editor/editor.main'], function() {
@@ -30,9 +75,10 @@
                             '#include <x86intrin.h>',
                             '#endif',
                             '',
-                            'void foo()',
+                            'int32_t foo(const int32_t a)',
                             '{',
                             '  // what are we analzying today?',
+                            '  return a * a;',
                             '}',
                         ].join('\n'),
                         language: 'cpp',
@@ -47,7 +93,7 @@
                     });
 
                     code_editor.getModel().onDidChangeContent(function(event) {
-                        console.log('The content of the editor has changed!');
+                        content_changed();
                     });
                 });
             </script>
@@ -56,10 +102,10 @@
                 <div class="selector">
                     <select id="compiler">
                       <optgroup label="GCC x64">
-                        <option value="gcc-13">gcc 13</option>
+                        <option value="g++-x64-13">gcc 13</option>
                       </optgroup>
                       <optgroup label="Clang x64">
-                        <option value="clang-16" selected="selected">clang 16</option>
+                        <option value="clang++-x64-16" selected="selected">clang 16</option>
                       </optgroup>
                     </select>
                     <select id="opt_lvl">
@@ -115,12 +161,12 @@
                       <span class="slider"></span>
                     </label>
                 </div>
-                <div class="disasm">
-                    <p>xor rax, rax</p>
-                    <p>ret</p>
+                <div class="disasm" id="asm">
+                    xor rax, rax<br>
+                    ret
                 </div>
                 <div class="v_separator"></div>
-                <div class="stdout">
+                <div class="stdout" id="stdout">
                     Compiling...
                 </div>
             </div>
