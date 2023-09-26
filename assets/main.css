@@ -40,11 +40,6 @@ html, body {
     display: block;
 }
 
-.app_view.disasm .disasm {
-    height: 75%;
-    overflow-x: scroll;
-}
-
 .app_view.disasm .stdout {
     padding: 5pt 15pt;
     height: 20%;
@@ -175,22 +170,94 @@ html, body {
     color: #ccc;
 }
 
+.app_view.disasm .disasm_container {
+    height: 75%;
+    overflow: auto;
+}
+
+.disasm_container .disasm {
+    width: max-content;
+}
+
 .disasm h3.symbol {
-    font-size: 120%;
+    font-size: 100%;
     color: #fff;
 }
 
 .disasm p.asm_line {
     line-height: 30%;
     user-select: all;
-    display: block ruby;
+    display: block;
+    height: 10pt;
+    padding-top: 4pt;
+    width: fit-content;
+    margin: 2pt;
+    font-size: 10.5pt;
 }
 
-.disasm p.asm_line .mnemonic {
-    margin-right: 1em;
-    color: #7498b5;
+.disasm p.asm_line ::-moz-selection, .disasm p.asm_line ::selection {
+    background: #aaa5;
+}
+
+.disasm p.asm_line .addr {
+    color: #858585;
+    min-width: 14pt;
+    display: inline-block;
+    margin-right: 0.75em;
+    text-align: right;
+    user-select: none;
+    font-weight: normal;
+    text-rendering: optimizelegibility;
+}
+
+.disasm p.asm_line .mnemonic, .disasm p.asm_line .jump {
+    margin-right: 0.5em;
+    color: #5397cf;
+    font-weight: normal;
+}
+
+.disasm p.asm_line .jump {
+    color: #51e7ff;
+}
+
+.disasm p.asm_line .params {
+    display: inline-block;
+    color: #d4d4d4;
+    font-style: normal;
+}
+
+.disasm p.asm_line .params .ptr {
+    display: inline-block;
+    color: #b5cea8;
+    font-style: normal;
 }
 
 .disasm p.asm_line .comment {
-    color: #799e6b;
+    color: #608b4e;
+    margin-left: 1em;
+    font-style: normal;
+}
+
+.disasm p.asm_line.selected {
+    background: #515151;
+    color: #e2e2e2;
+}
+
+* {
+  scrollbar-width: auto;
+  scrollbar-color: #aaaaaa1f #5553;
+}
+
+*::-webkit-scrollbar {
+  width: 10pt;
+  height: 10pt;
+}
+
+*::-webkit-scrollbar-track, ::-webkit-scrollbar-corner {
+  background: #5553;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #aaaaaa1f;
+  border: 2pt solid #5553;
 }

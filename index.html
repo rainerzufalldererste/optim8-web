@@ -22,7 +22,6 @@
                 var last_dump;
 
                 function load_url(url, callback, obj) {
-                  console.log('request: "' + url + '" with ' + obj);
                   var xmlhttp;
                   if (window.XMLHttpRequest) { // code for IE7+, Firefox, Chrome, Opera, Safari
                       xmlhttp = new XMLHttpRequest();
@@ -74,15 +73,23 @@
                             var dumplines = objdump_out.split('\n');
                             last_dump = [];
                             var last_sym = [];
+                            var expect_symbol = true;
+                            const jumps = ['jmp', 'jb', 'jbe', 'jcxz', 'je', 'jecxz', 'jl', 'jle', 'jnb', 'jnbe', 'jnl', 'jnle', 'jno', 'jnp', 'jns', 'jnz', 'jo', 'jp', 'js', 'jz'];
 
                             for (let i = 0; i < dumplines.length; i++)
                             {
                                 let x = dumplines[i];
 
-                                if (x.startsWith('<'))
+                                if (x == '')
                                 {
+                                    expect_symbol = true;
+                                }
+                                else if (expect_symbol)
+                                {
+                                    expect_symbol = false;
                                     last_sym = [];
-                                    last_sym.name = x;
+                                    var prefix = x.split('<')[0];
+                                    last_sym.name = x.substring(prefix.length);
                                     last_dump.push(last_sym);
                                 }
                                 else
@@ -98,8 +105,13 @@
                                     const params = asm.substring(mnemonic.length).trim();
                                     const beforeComment = params.split('#')[0];
                                     const comment = params.substring(beforeComment.length);
+                                    const isJump = jumps.includes(mnemonic);
+                                    var target;
 
-                                    last_sym.push({ 'raw': x, 'addr': addr, 'bytes': bytes, 'asm': asm, 'mnemonic': mnemonic, 'params': beforeComment, 'comment': comment });
+                                    if (isJump)
+                                        target = parseInt(beforeComment.split(' ')[0], 16);
+
+                                    last_sym.push({ 'raw': x, 'addrStr': addr, 'addr': parseInt(addr, 16), 'bytes': bytes, 'asm': asm, 'mnemonic': mnemonic, 'params': beforeComment, 'comment': comment, 'isJump': isJump, 'target': target });
                                 }
                             }
 
@@ -115,8 +127,16 @@
                                 {
                                     var e = append_element(asm, 'p', 'asm_line', '');
                                     e.origin = { 'sym': i, 'line': j };
-                                    append_element(e, 'b', 'mnemonic', sym[j].mnemonic);
-                                    append_element(e, 'i', 'params', sym[j].params);
+                                    append_element(e, 'b', 'addr', sym[j].addrStr);
+                                    append_element(e, 'b', sym[j].isJump ? 'jump' : 'mnemonic', sym[j].mnemonic);
+                                    var params = append_element(e, 'i', 'params', sym[j].params);
+                                    params.innerHTML = params.innerHTML.replaceAll(' ZMMWORD PTR ', ' <i class="ptr">ZMMWORD PTR </i> ')
+                                    params.innerHTML = params.innerHTML.replaceAll(' YMMWORD PTR ', ' <i class="ptr">YMMWORD PTR </i> ')
+                                    params.innerHTML = params.innerHTML.replaceAll(' XMMWORD PTR ', ' <i class="ptr">XMMWORD PTR </i> ')
+                                    params.innerHTML = params.innerHTML.replaceAll(' QWORD PTR ', ' <i class="ptr">QWORD PTR </i> ')
+                                    params.innerHTML = params.innerHTML.replaceAll(' DWORD PTR ', ' <i class="ptr">DWORD PTR </i> ')
+                                    params.innerHTML = params.innerHTML.replaceAll(' WORD PTR ', ' <i class="ptr">WORD PTR </i> ')
+                                    params.innerHTML = params.innerHTML.replaceAll(' BYTE PTR ', ' <i class="ptr">BYTE PTR </i> ')
 
                                     if (sym[j].comment)
                                         append_element(e, 'i', 'comment', sym[j].comment);
@@ -265,8 +285,10 @@
                       <span class="slider"></span>
                     </label>
                 </div>
-                <div class="disasm" id="asm">
-                    Edit or Paste Code To Begin Analyzing.
+                <div class="disasm_container">
+                    <div class="disasm" id="asm">
+                        Edit or Paste Code To Begin Analyzing.
+                    </div>
                 </div>
                 <div class="v_separator"></div>
                 <div class="stdout" id="stdout">
