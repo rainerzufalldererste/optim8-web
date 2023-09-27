@@ -84,7 +84,7 @@ html, body {
     display: inline-block;
     width: 35pt;
     height: calc(100% - 6pt);
-    margin: 2pt 8pt 2pt 4pt;
+    margin: 2pt 4pt 2pt 4pt;
     top: -2pt;
 }
 
@@ -135,6 +135,13 @@ html, body {
     background-color: #fff;
 }
 
+.selector i.label {
+    margin-left: 8pt;
+    margin-right: -4pt;
+    font-style: normal;
+    font-size: 90%;
+    display: inline-block;
+}
 .selector input[type="text"] {
     width: 200pt;
     margin: 2pt 2pt;
@@ -179,12 +186,12 @@ html, body {
     width: max-content;
 }
 
-.disasm h3.symbol {
+.disasm .function h3.symbol {
     font-size: 100%;
     color: #fff;
 }
 
-.disasm p.asm_line {
+.disasm .function p.asm_line {
     line-height: 30%;
     user-select: all;
     display: block;
@@ -193,13 +200,14 @@ html, body {
     width: fit-content;
     margin: 2pt;
     font-size: 10.5pt;
+    text-rendering: optimizelegibility;
 }
 
-.disasm p.asm_line ::-moz-selection, .disasm p.asm_line ::selection {
+.disasm .function p.asm_line ::-moz-selection, .disasm .function p.asm_line ::selection {
     background: #aaa5;
 }
 
-.disasm p.asm_line .addr {
+.disasm .function p.asm_line .addr {
     color: #858585;
     min-width: 14pt;
     display: inline-block;
@@ -207,40 +215,211 @@ html, body {
     text-align: right;
     user-select: none;
     font-weight: normal;
-    text-rendering: optimizelegibility;
 }
 
-.disasm p.asm_line .mnemonic, .disasm p.asm_line .jump {
+.disasm .function p.asm_line .bytes {
+    display: none;
+    min-width: 35pt;
+    margin-right: 0.75em;
+    opacity: 20%;
+}
+
+.disasm .function p.asm_line .mnemonic, .disasm .function p.asm_line .jump {
     margin-right: 0.5em;
     color: #5397cf;
     font-weight: normal;
 }
 
-.disasm p.asm_line .jump {
+.disasm .function p.asm_line .jump {
     color: #51e7ff;
 }
 
-.disasm p.asm_line .params {
+.disasm .function p.asm_line .params {
     display: inline-block;
     color: #d4d4d4;
     font-style: normal;
 }
 
-.disasm p.asm_line .params .ptr {
+.disasm .function p.asm_line .params .ptr {
     display: inline-block;
     color: #b5cea8;
     font-style: normal;
 }
 
-.disasm p.asm_line .comment {
+.disasm .function p.asm_line .comment {
     color: #608b4e;
     margin-left: 1em;
     font-style: normal;
 }
 
-.disasm p.asm_line.selected {
+.disasm .function p.asm_line.selected {
     background: #515151;
     color: #e2e2e2;
+}
+
+.disasm .function p.asm_line .comment.dec {
+    margin-left: auto;
+}
+
+p.asm_line .isa {
+    user-select: none;
+    display: inline-block;
+    color: #7f7f7f;
+    font-style: normal;
+    font-size: 85%;
+    margin: 0 7pt;
+    background: #ffffff0d;
+    line-height: 100%;
+    padding: 1.5pt 2pt;
+    border-radius: 4pt;
+    font-family: 'Segoe UI', sans-serif;
+    border: 1pt solid;
+}
+
+i.isa.AVX {
+    color: #5f61bb;
+}
+
+p.asm_line .dec {
+    color: #d4d4d4;
+    font-weight: normal;
+}
+
+p.asm_line .dectype::before {
+    content: '(';
+    color: #838383;
+}
+
+p.asm_line .dectype::after {
+    content: ')';
+    color: #838383;
+}
+
+p.asm_line .dectype {
+    color: #5397cf;
+    font-weight: normal;
+}
+
+p.asm_line .decbuiltin {
+    color: #b5cea8;
+    font-weight: normal;
+}
+
+p.asm_line .decbasic {
+    color: #beb7ff;
+    font-weight: normal;
+}
+
+p.asm_line .isa {
+    user-select: none;
+    display: inline-block;
+    color: #7f7f7f;
+    font-style: normal;
+    font-size: 85%;
+    margin: 0 7pt;
+    background: #ffffff0d;
+    line-height: 100%;
+    padding: 1.5pt 2pt;
+    border-radius: 4pt;
+    font-family: 'Segoe UI', sans-serif;
+    border: 1pt solid;
+}
+
+i.isa.SSE, i.isa.SSE2, i.isa.SSE2MMX, i.isa.SSE_PREFETCH {
+    color: #71969d;
+}
+
+i.isa.SSE3, i.isa.SSE3X87 {
+    color: #55929d;
+}
+
+i.isa.SSSE3, i.isa.SSSE3MMX {
+    color: #5fa5bb;
+}
+
+i.isa.SSE4, i.isa.SSE41, i.isa.SSE42 {
+    color: #5f87bb;
+}
+
+i.isa.AVX {
+    color: #5f61bb;
+}
+
+i.isa.AVX2, i.isa.AVX2GATHER {
+    color: #875fbb;
+}
+
+i.isa.AVX512BW_128,
+i.isa.AVX512BW_128N,
+i.isa.AVX512BW_256,
+i.isa.AVX512BW_512,
+i.isa.AVX512BW_KOP,
+i.isa.AVX512CD_128,
+i.isa.AVX512CD_256,
+i.isa.AVX512CD_512,
+i.isa.AVX512DQ_128,
+i.isa.AVX512DQ_128N,
+i.isa.AVX512DQ_256,
+i.isa.AVX512DQ_512,
+i.isa.AVX512DQ_KOP,
+i.isa.AVX512DQ_SCALAR,
+i.isa.AVX512ER_512,
+i.isa.AVX512ER_SCALAR,
+i.isa.AVX512F_128,
+i.isa.AVX512F_128N,
+i.isa.AVX512F_256,
+i.isa.AVX512F_512,
+i.isa.AVX512F_KOP,
+i.isa.AVX512F_SCALAR,
+i.isa.AVX512PF_512,
+i.isa.AVX512_4FMAPS_512,
+i.isa.AVX512_4FMAPS_SCALAR,
+i.isa.AVX512_4VNNIW_512,
+i.isa.AVX512_BF16_128,
+i.isa.AVX512_BF16_256,
+i.isa.AVX512_BF16_512,
+i.isa.AVX512_BITALG_128,
+i.isa.AVX512_BITALG_256,
+i.isa.AVX512_BITALG_512,
+i.isa.AVX512_FP16_128,
+i.isa.AVX512_FP16_128N,
+i.isa.AVX512_FP16_256,
+i.isa.AVX512_FP16_512,
+i.isa.AVX512_FP16_SCALAR,
+i.isa.AVX512_GFNI_128,
+i.isa.AVX512_GFNI_256,
+i.isa.AVX512_GFNI_512,
+i.isa.AVX512_IFMA_128,
+i.isa.AVX512_IFMA_256,
+i.isa.AVX512_IFMA_512,
+i.isa.AVX512_VAES_128,
+i.isa.AVX512_VAES_256,
+i.isa.AVX512_VAES_512,
+i.isa.AVX512_VBMI2_128,
+i.isa.AVX512_VBMI2_256,
+i.isa.AVX512_VBMI2_512,
+i.isa.AVX512_VBMI_128,
+i.isa.AVX512_VBMI_256,
+i.isa.AVX512_VBMI_512,
+i.isa.AVX512_VNNI_128,
+i.isa.AVX512_VNNI_256,
+i.isa.AVX512_VNNI_512,
+i.isa.AVX512_VP2INTERSECT_128,
+i.isa.AVX512_VP2INTERSECT_256,
+i.isa.AVX512_VP2INTERSECT_512,
+i.isa.AVX512_VPCLMULQDQ_128,
+i.isa.AVX512_VPCLMULQDQ_256,
+i.isa.AVX512_VPCLMULQDQ_512,
+i.isa.AVX512_VPOPCNTDQ_128,
+i.isa.AVX512_VPOPCNTDQ_256,
+i.isa.AVX512_VPOPCNTDQ_512,
+i.isa.AVX512EVEX,
+i.isa.AVX512VEX {
+    color: #bb5479;
+}
+
+i.isa.FMA, i.isa.FMA4, i.isa.AES, i.isa.AVXAES, i.isa.AVX_VNNI {
+    color: #bb7b54;
 }
 
 * {

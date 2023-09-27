@@ -17,11 +17,12 @@
             <script type="module">
                 var code_editor;
                 var last_modification = Date.now();
-                var sleep_time = 3000;
-                var server_url = "http://localhost:61919/"
+                const sleep_time = 3000;
+                const server_url = "http://localhost:61919/"
                 var last_dump;
 
                 function load_url(url, callback, obj) {
+                  console.log('requesting "' + url + '" with ' + JSON.stringify(obj) + '.');
                   var xmlhttp;
                   if (window.XMLHttpRequest) { // code for IE7+, Firefox, Chrome, Opera, Safari
                       xmlhttp = new XMLHttpRequest();
@@ -49,13 +50,147 @@
 
                 function hexToBytes(hex) {
                     let bytes = [];
-                    for (let c = 0; c < hex.length; c += 2)
-                        bytes.push(parseInt(hex.substr(c, 2), 16));
+
+                    for (let i = 0; i < hex.length; i += 3)
+                        bytes.push(parseInt(hex.substr(i, 2), 16));
+
                     return bytes;
+                }
+
+                function bytesToHex(byteArray) {
+                  return Array.from(byteArray, function(byte) {
+                    return ('0' + (byte & 0xFF).toString(16)).slice(-2);
+                  }).join(' ');
+                }
+
+                function bytesToBase64(bytes) {
+                    return window.btoa(String.fromCharCode.apply(null, new Uint8Array(bytes)));
+                }
+
+                function display_zydec() {
+                    for (let i = 0; i < last_dump.length; i++)
+                    {
+                        let sym = last_dump[i];
+
+                        for (let j = 0; j < sym.length; j++)
+                        {
+                            let data = sym[j];
+                            let n = data.element;
+                            n.innerHTML = "";
+
+                            let sect = data.dec.split('// ');
+
+                            append_element(n, 'b', 'addr dec', data.addr.toString(16));
+
+                            var dec = append_element(n, 'b', 'dec', sect[0]);
+                            dec.title = sect[2];
+
+                            dec.innerHTML = dec.innerHTML.replaceAll('(m512)', '<i class="dectype">m512</i>')
+                            dec.innerHTML = dec.innerHTML.replaceAll('(m256)', '<i class="dectype">m256</i>')
+                            dec.innerHTML = dec.innerHTML.replaceAll('(m128)', '<i class="dectype">m128</i>')
+                            dec.innerHTML = dec.innerHTML.replaceAll('(i64)', '<i class="dectype">i64</i>')
+                            dec.innerHTML = dec.innerHTML.replaceAll('(i32)', '<i class="dectype">i32</i>')
+                            dec.innerHTML = dec.innerHTML.replaceAll('(i16)', '<i class="dectype">i16</i>')
+                            dec.innerHTML = dec.innerHTML.replaceAll('(i8)', '<i class="dectype">i8</i>')
+
+                            dec.innerHTML = dec.innerHTML.replaceAll('extra_segment:', '<i class="decbuiltin">extra_segment:</i>')
+                            dec.innerHTML = dec.innerHTML.replaceAll('code_segment:', '<i class="decbuiltin">code_segment:</i>')
+                            dec.innerHTML = dec.innerHTML.replaceAll('stack_segment:', '<i class="decbuiltin">stack_segment:</i>')
+                            dec.innerHTML = dec.innerHTML.replaceAll('data_segment:', '<i class="decbuiltin">data_segment:</i>')
+                            dec.innerHTML = dec.innerHTML.replaceAll('f_segment:', '<i class="decbuiltin">f_segment:</i>')
+                            dec.innerHTML = dec.innerHTML.replaceAll('g_segment:', '<i class="decbuiltin">g_segment:</i>')
+
+                            dec.innerHTML = dec.innerHTML.replaceAll('compare(', '<i class="decbasic">compare</i>(')
+                            dec.innerHTML = dec.innerHTML.replaceAll('if (', '<i class="decbasic">if</i> (')
+                            dec.innerHTML = dec.innerHTML.replaceAll('goto ', '<i class="decbasic">goto</i> ')
+
+                            if (sect.length > 1)
+                                append_element(n, 'b', 'comment dec', "// " + sect[1]);
+
+                            append_element(n, 'i', 'isa ' + data.isa, data.isa);
+                        }
+                    }
+                }
+
+                function load_zydec(dump_index) {
+                    let bytes = [];
+                    let func = last_dump[dump_index];
+                    
+                    for (let i = 0; i < func.length; i++)
+                        bytes = bytes.concat(func[i].bytes);
+
+                    const base64 = bytesToBase64(bytes);
+                    const request = { 'bytes': base64, 'addr': func[0].addr };
+
+                    load_url(server_url + 'zydec', (e) => {
+                        let func = last_dump[dump_index];
+                        let idx = 0;
+                        let data = e.zydec.split('\n');
+
+                        for (let i = 0; i < data.length; i++)
+                        {
+                            if (data[i] == '')
+                                continue;
+
+                            let sect = data[i].split('\t');
+                            let addr = parseInt(sect[0]);
+
+                            let n = func[idx];
+
+                            if (n.addr == addr)
+                            {
+                                idx++;
+
+                                n.rawZydec = data[i];
+                                n.dec = sect[1];
+                                n.isa = sect[2];
+                            }
+                        }
+
+                        if (last_dump.length > dump_index + 1)
+                            load_zydec(dump_index + 1);
+                        else
+                            display_zydec();
+                    }, request);
+                }
+
+                function display_disasm() {
+                    var asm = document.getElementById('asm');
+                    asm.innerHTML = "";
+
+                    for (let i = 0; i < last_dump.length; i++)
+                    {
+                        let sym = last_dump[i];
+
+                        var container = append_element(asm, 'div', 'function');
+                        sym.element = append_element(container, 'h3', 'symbol', sym.name);
+
+                        for (let j = 0; j < sym.length; j++)
+                        {
+                            var e = append_element(container, 'p', 'asm_line', '');
+                            e.origin = { 'sym': i, 'line': j, 'addr': sym[j].addr };
+                            sym[j].element = e;
+                            append_element(e, 'b', 'addr', sym[j].addrStr);
+                            append_element(e, 'i', 'bytes', bytesToHex(sym[j].bytes));
+                            append_element(e, 'b', sym[j].isJump ? 'jump' : 'mnemonic', sym[j].mnemonic);
+                            var params = append_element(e, 'i', 'params', sym[j].params);
+                            params.innerHTML = params.innerHTML.replaceAll(' ZMMWORD PTR ', ' <i class="ptr">ZMMWORD PTR </i> ')
+                            params.innerHTML = params.innerHTML.replaceAll(' YMMWORD PTR ', ' <i class="ptr">YMMWORD PTR </i> ')
+                            params.innerHTML = params.innerHTML.replaceAll(' XMMWORD PTR ', ' <i class="ptr">XMMWORD PTR </i> ')
+                            params.innerHTML = params.innerHTML.replaceAll(' QWORD PTR ', ' <i class="ptr">QWORD PTR </i> ')
+                            params.innerHTML = params.innerHTML.replaceAll(' DWORD PTR ', ' <i class="ptr">DWORD PTR </i> ')
+                            params.innerHTML = params.innerHTML.replaceAll(' WORD PTR ', ' <i class="ptr">WORD PTR </i> ')
+                            params.innerHTML = params.innerHTML.replaceAll(' BYTE PTR ', ' <i class="ptr">BYTE PTR </i> ')
+
+                            if (sym[j].comment)
+                                append_element(e, 'i', 'comment', sym[j].comment);
+                        }
+                    }
                 }
 
                 function suggest_compile() {
                     if ((Date.now() - last_modification) >= sleep_time - 2) {
+                        last_dump = null;
                         last_modification = Date.now();
                         var compiler = document.getElementById("compiler").value;
                         var opt = document.getElementById("opt_lvl").value;
@@ -63,7 +198,6 @@
                         load_url(server_url + compiler, (e) => {
                             var compiler_out = e['compiler'];
                             var objdump_out = e['objdump'];
-                            var asm = document.getElementById('asm');
                             var stdout = document.getElementById('stdout');
 
                             if (compiler_out == '')
@@ -95,14 +229,13 @@
                                 else
                                 {
                                     let trimmed = x.trim();
-                                    let addr = x.split(':')[0];
-                                    trimmed = trimmed.substring(addr.length).trim();
-                                    addr = addr.trim();
-                                    const hex = trimmed.substr(15 * 3).trim();
+                                    let sect = x.split('\t');
+                                    let addr = sect[0].replaceAll(':', '').trim(' ');
+                                    const hex = sect[1].trim(' ');
                                     const bytes = hexToBytes(hex);
-                                    const asm = trimmed.substring(15 * 3).trim().replaceAll(',', ", ").replaceAll('  ', ' ');
-                                    const mnemonic = asm.split(' ')[0];
-                                    const params = asm.substring(mnemonic.length).trim();
+                                    const _asm = sect[2].trim(' ').replaceAll(',', ", ").replaceAll('  ', ' ');
+                                    const mnemonic = _asm.split(' ')[0];
+                                    const params = _asm.substring(mnemonic.length).trim();
                                     const beforeComment = params.split('#')[0];
                                     const comment = params.substring(beforeComment.length);
                                     const isJump = jumps.includes(mnemonic);
@@ -111,45 +244,30 @@
                                     if (isJump)
                                         target = parseInt(beforeComment.split(' ')[0], 16);
 
-                                    last_sym.push({ 'raw': x, 'addrStr': addr, 'addr': parseInt(addr, 16), 'bytes': bytes, 'asm': asm, 'mnemonic': mnemonic, 'params': beforeComment, 'comment': comment, 'isJump': isJump, 'target': target });
+                                    last_sym.push({ 'raw': x, 'addrStr': addr, 'addr': parseInt(addr, 16), 'bytes': bytes, 'asm': _asm, 'mnemonic': mnemonic, 'params': beforeComment, 'comment': comment, 'isJump': isJump, 'target': target });
                                 }
                             }
 
-                            asm.innerHTML = "";
+                            display_disasm();
 
-                            for (let i = 0; i < last_dump.length; i++)
-                            {
-                                let sym = last_dump[i];
+                            if (document.getElementById('zydec').checked)
+                                load_zydec(0);
 
-                                append_element(asm, 'h3', 'symbol', sym.name);
-
-                                for (let j = 0; j < sym.length; j++)
-                                {
-                                    var e = append_element(asm, 'p', 'asm_line', '');
-                                    e.origin = { 'sym': i, 'line': j };
-                                    append_element(e, 'b', 'addr', sym[j].addrStr);
-                                    append_element(e, 'b', sym[j].isJump ? 'jump' : 'mnemonic', sym[j].mnemonic);
-                                    var params = append_element(e, 'i', 'params', sym[j].params);
-                                    params.innerHTML = params.innerHTML.replaceAll(' ZMMWORD PTR ', ' <i class="ptr">ZMMWORD PTR </i> ')
-                                    params.innerHTML = params.innerHTML.replaceAll(' YMMWORD PTR ', ' <i class="ptr">YMMWORD PTR </i> ')
-                                    params.innerHTML = params.innerHTML.replaceAll(' XMMWORD PTR ', ' <i class="ptr">XMMWORD PTR </i> ')
-                                    params.innerHTML = params.innerHTML.replaceAll(' QWORD PTR ', ' <i class="ptr">QWORD PTR </i> ')
-                                    params.innerHTML = params.innerHTML.replaceAll(' DWORD PTR ', ' <i class="ptr">DWORD PTR </i> ')
-                                    params.innerHTML = params.innerHTML.replaceAll(' WORD PTR ', ' <i class="ptr">WORD PTR </i> ')
-                                    params.innerHTML = params.innerHTML.replaceAll(' BYTE PTR ', ' <i class="ptr">BYTE PTR </i> ')
-
-                                    if (sym[j].comment)
-                                        append_element(e, 'i', 'comment', sym[j].comment);
-                                }
-                            }
                         }, { 'opt': opt, 'march': march, 'src': code_editor.getValue() });
                     }
                 }
 
-                function content_changed() {
+                window.content_changed = function () {
                     document.getElementById('stdout').innerText = "Waiting for Compile...";
                     last_modification = Date.now();
                     setTimeout(suggest_compile, sleep_time);
+                }
+
+                window.zydec_changed = function() {
+                    if (document.getElementById('zydec').checked)
+                        display_zydec();
+                    else
+                        display_disasm();
                 }
 
                 require.config({ paths: { 'vs': 'monaco-editor/min/vs' }});
@@ -224,7 +342,7 @@
             <div class="h_separator"></div>
             <div id="disasm0" class="app_view disasm">
                 <div class="selector">
-                    <select id="compiler">
+                    <select id="compiler" onchange="javascript:content_changed();">
                       <optgroup label="GCC x64">
                         <option value="g++-x64-13">gcc 13</option>
                       </optgroup>
@@ -232,7 +350,7 @@
                         <option value="clang++-x64-16" selected="selected">clang 16</option>
                       </optgroup>
                     </select>
-                    <select id="opt_lvl">
+                    <select id="opt_lvl" onchange="javascript:content_changed();">
                         <option value="O0">-O0</option>
                         <option value="O1">-O1</option>
                         <option value="O2">-O2</option>
@@ -243,7 +361,7 @@
                         <option value="Oz">-Oz</option>
                         <option value="Og">-Og</option>
                     </select>
-                    <select id="march">
+                    <select id="march" onchange="javascript:content_changed();">
                         <option value="none" selected="selected">none</option>
                       <optgroup label="Intel">
                         <option value="adl">Alderlake</option>
@@ -280,8 +398,9 @@
                         <option value="zn4">Zen4</option>
                       </optgroup>
                     </select>
+                    <i class="label">decode</i>
                     <label class="switch">
-                      <input id="zydec" type="checkbox" checked="true">
+                      <input id="zydec" type="checkbox" checked="true" onchange="javascript:zydec_changed();">
                       <span class="slider"></span>
                     </label>
                 </div>
