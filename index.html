@@ -103,6 +103,7 @@
                             dec.innerHTML = dec.innerHTML.replaceAll('compare(', '<i class="decbasic">compare</i>(')
                             dec.innerHTML = dec.innerHTML.replaceAll('if (', '<i class="decbasic">if</i> (')
                             dec.innerHTML = dec.innerHTML.replaceAll('goto ', '<i class="decbasic">goto</i> ')
+                            dec.innerHTML = dec.innerHTML.replaceAll('return;', '<i class="decbasic">return</i>;')
 
                             if (sect.length > 1)
                                 append_element(n, 'b', 'comment dec', "// " + sect[1]);
@@ -162,7 +163,7 @@
                     {
                         let sym = last_dump[i];
 
-                        var container = append_element(asm, 'div', 'function');
+                        var container = append_element(asm, 'div', 'function', '');
                         sym.element = append_element(container, 'h3', 'symbol', sym.name);
 
                         for (let j = 0; j < sym.length; j++)
@@ -174,13 +175,13 @@
                             append_element(e, 'i', 'bytes', bytesToHex(sym[j].bytes));
                             append_element(e, 'b', sym[j].isJump ? 'jump' : 'mnemonic', sym[j].mnemonic);
                             var params = append_element(e, 'i', 'params', sym[j].params);
-                            params.innerHTML = params.innerHTML.replaceAll(' ZMMWORD PTR ', ' <i class="ptr">ZMMWORD PTR </i> ')
-                            params.innerHTML = params.innerHTML.replaceAll(' YMMWORD PTR ', ' <i class="ptr">YMMWORD PTR </i> ')
-                            params.innerHTML = params.innerHTML.replaceAll(' XMMWORD PTR ', ' <i class="ptr">XMMWORD PTR </i> ')
-                            params.innerHTML = params.innerHTML.replaceAll(' QWORD PTR ', ' <i class="ptr">QWORD PTR </i> ')
-                            params.innerHTML = params.innerHTML.replaceAll(' DWORD PTR ', ' <i class="ptr">DWORD PTR </i> ')
-                            params.innerHTML = params.innerHTML.replaceAll(' WORD PTR ', ' <i class="ptr">WORD PTR </i> ')
-                            params.innerHTML = params.innerHTML.replaceAll(' BYTE PTR ', ' <i class="ptr">BYTE PTR </i> ')
+                            params.innerHTML = params.innerHTML.replaceAll('ZMMWORD PTR ', '<i class="ptr">ZMMWORD  PTR </i> ');
+                            params.innerHTML = params.innerHTML.replaceAll('YMMWORD PTR ', '<i class="ptr">YMMWORD  PTR </i> ');
+                            params.innerHTML = params.innerHTML.replaceAll('XMMWORD PTR ', '<i class="ptr">XMMWORD  PTR </i> ');
+                            params.innerHTML = params.innerHTML.replaceAll('QWORD PTR ', '<i class="ptr">QWORD  PTR </i> ');
+                            params.innerHTML = params.innerHTML.replaceAll('DWORD PTR ', '<i class="ptr">DWORD  PTR </i> ');
+                            params.innerHTML = params.innerHTML.replaceAll('WORD PTR ', '<i class="ptr">WORD  PTR </i> ');
+                            params.innerHTML = params.innerHTML.replaceAll('BYTE PTR ', '<i class="ptr">BYTE  PTR </i> ');
 
                             if (sym[j].comment)
                                 append_element(e, 'i', 'comment', sym[j].comment);
