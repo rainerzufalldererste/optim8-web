@@ -646,15 +646,15 @@ i.isa.AVX_VNNI {
   top: calc(var(--offset) * -16pt - 3pt);
 }
 
-.asm_line.selected .addr .dependency.reg {
+.asm_line.selected .addr .dependency.reg, .mca_pressure.reg {
   color: #b95d9c;
 }
 
-.asm_line.selected .addr .dependency.mem {
+.asm_line.selected .addr .dependency.mem, .mca_pressure.mem {
   color: #5d85b9;
 }
 
-.asm_line.selected .addr .dependency.rsrc {
+.asm_line.selected .addr .dependency.rsrc, .mca_pressure.rsrc {
   color: #815db9;
 }
 
@@ -677,3 +677,61 @@ i.isa.AVX_VNNI {
   width: 1pt;
 }
 
+.mca_info {
+  display: none;
+}
+
+.asm_line.selected .addr .mca_info {
+  display: block;
+  position: absolute;
+  line-height: 100%;
+  top: 10pt;
+  left: 200pt;
+  width: 250pt;
+  background: #151515ee;
+  padding: 15pt 20pt;
+  color: #bbb;
+  text-align: left;
+}
+
+.mca_istat {
+  display: block;
+}
+
+.mca_stall {
+  margin: 5pt 0;
+  display: block;
+  color: #a66;
+}
+
+.mca_pressure {
+  display: block;
+}
+
+.mca_reg, .mca_port {
+  color: #ddd;
+  font-style: normal;
+  display: inline-block;
+}
+
+.mca_loop::before, .mca_loop_origin::before {
+  content: 'Loop ';
+  font-size: 70%;
+}
+
+.mca_loop, .mca_loop_origin {
+  display: inline-block;
+  color: #fff;
+  background: #4924ff;
+  border-radius: 5pt;
+  padding: 0 3pt;
+  margin: 2pt 4pt;
+}
+
+.mca_loop_origin {
+  background: #6c629b;
+}
+
+.mca_loop_origin::before {
+  content: '◀ Loop ';
+}

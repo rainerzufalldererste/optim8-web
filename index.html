@@ -71,7 +71,7 @@
       function bytesToBase64(bytes) {
         return window.btoa(String.fromCharCode.apply(null, new Uint8Array(bytes)));
       }
-      
+
       function removeChildNodesByClass(parent, className) {
         var elements = parent.getElementsByClassName(className);
 
@@ -133,8 +133,6 @@
           flow_lanes.push(lane);
         }
 
-        console.log(e);
-
         let func_idx = 0;
         let instruction_idx = 0;
 
@@ -188,12 +186,39 @@
           let addr = matched_inst.element.childNodes[0];
           addr.style.setProperty('--weight', inst.executing);
 
+          var info = append_element(addr, 'div', 'mca_info', '');
+          append_element(info, 'b', 'mca_istat', 'uOps: ' + inst.uops);
+          append_element(info, 'b', 'mca_istat', 'dispatched: ~' + inst.dispatched + ' cycle(s) / iteration');
+          append_element(info, 'b', 'mca_istat', 'pending: ~' + inst.pending + ' cycle(s) / iteration');
+          append_element(info, 'b', 'mca_istat', 'ready: ~' + inst.ready + ' cycle(s) / iteration');
+          append_element(info, 'b', 'mca_istat', 'executing: ~' + inst.executing + ' cycle(s) / iteration');
+          append_element(info, 'b', 'mca_istat', 'retiring: ~' + inst.retiring + ' cycle(s) / iteration');
+
+          if (inst.stalls != undefined)
+            for (let j = 0; j < inst.stalls.length; j++)
+              append_element(info, 'b', 'mca_stall', inst.stalls[j]);
+
           if (inst.pressure != undefined) {
             for (let j = 0; j < inst.pressure.length; j++) {
               let p = inst.pressure[j];
 
               var pressure = append_element(addr, 'div', 'dependency ' + p.type + (p.origin_offset > 0 ? ' below' : ' above'), '');
               pressure.style.setProperty('--offset', Math.abs(p.origin_offset));
+
+              var pr = append_element(info, 'i', 'mca_pressure ' + p.type, p.cycles + ' cycle(s) on ');
+              
+              if (p.type == 'reg')
+                append_element(pr, 'b', 'mca_reg', p.name);
+              else if (p.type == 'mem')
+                append_element(pr, 'i', 'mca_nondescript', 'memory');
+              else if (p.type == 'rsrc')
+              append_element(pr, 'b', 'mca_port', p.port_name);
+            
+            append_element(pr, 'i', 'mca_nondescript', ' in ');
+            append_element(pr, 'b', 'mca_loop', p.it);
+
+              if (p.it != p.origin_it)
+                append_element(pr, 'b', 'mca_loop_origin', p.origin_it);
             }
           }
 
@@ -230,7 +255,7 @@
 
               lanes[j].onmouseleave = () => {
                 minstr.element.className = minstr.element.className.replaceAll(" selected", "");
-                
+
                 for (let k = 0; k < minstr.flow.lanes.length; k++) {
                   let lane = minstr.flow.lanes[k];
                   lane.className = lane.className.replaceAll(" selected", "");
@@ -490,8 +515,7 @@
               loop_selector.style.display = "none";
 
               suggest_execution_flow(0);
-            }
-            else {
+            } else {
               loop_selector.style.display = "inherit";
 
               for (let i = 0; i < loops.length; i++) {
