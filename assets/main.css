@@ -255,6 +255,10 @@ body {
   cursor: default;
 }
 
+.disasm .function .asm_line.matched {
+  user-select: none;
+}
+
 .disasm .function p.asm_line.hover {
   background: #4ac4ff14;
 }
@@ -272,6 +276,15 @@ body {
   text-align: right;
   user-select: none;
   font-weight: normal;
+}
+
+.disasm .function p.asm_line.matched .addr {
+  --sweight0: calc(1 - min(1, var(--weight) / 50));
+  --sweight1: calc(var(--sweight0) * var(--sweight0));
+  --sweight2: calc(var(--sweight1) * var(--sweight1));
+  --sweight: calc(1 - var(--sweight2) * var(--sweight2));
+  color: hsl(calc(var(--sweight) * -235deg + 230deg), calc(var(--sweight) * 65% + 10%), calc(var(--sweight) * 20% + 40%));
+  position: relative;
 }
 
 .disasm .function p.asm_line .bytes {
@@ -592,3 +605,75 @@ i.isa.AVX_VNNI {
   opacity: 100%;
   z-index: 10;
 }
+
+.asm_line.selected .addr .dependency.above::before, .asm_line.selected .addr .dependency.below::before {
+  content: ' ';
+  border: 2pt solid;
+  border-right: none;
+  width: 10pt;
+  right: 15pt;
+  background: transparent;
+  position: absolute;
+  height: calc(var(--offset) * 16pt);
+}
+
+.asm_line.selected .addr .dependency.below::before {
+  top: -0.5pt;
+}
+
+.asm_line.selected .addr .dependency.above::before {
+  top: calc(var(--offset) * -16pt);
+}
+
+.asm_line.selected .addr .dependency.above::after, .asm_line.selected .addr .dependency.below::after {
+  content: ' ';
+  background: transparent;
+  position: absolute;
+  border: 2pt solid;
+  border-left: none;
+  border-bottom: none;
+  transform: rotate(45deg);
+  width: 5pt;
+  height: 5pt;
+  left: -6.25pt;
+}
+
+.asm_line.selected .addr .dependency.below::after {
+  top: calc(var(--offset) * 16pt - 1.73pt);
+}
+
+.asm_line.selected .addr .dependency.above::after {
+  top: calc(var(--offset) * -16pt - 3pt);
+}
+
+.asm_line.selected .addr .dependency.reg {
+  color: #b95d9c;
+}
+
+.asm_line.selected .addr .dependency.mem {
+  color: #5d85b9;
+}
+
+.asm_line.selected .addr .dependency.rsrc {
+  color: #815db9;
+}
+
+.asm_line.selected .addr .dependency.reg::before {
+  width: 6.5pt;
+}
+
+.asm_line.selected .addr .dependency.mem::before {
+  width: 13.5pt;
+}
+
+.asm_line.selected .addr .dependency.rsrc::before {
+  width: 10pt;
+}
+
+.exec_flow_spacing {
+  position: absolute;
+  top: calc(var(--position) * 15pt);
+  height: 50pt;
+  width: 1pt;
+}
+

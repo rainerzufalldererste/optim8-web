@@ -71,8 +71,22 @@
       function bytesToBase64(bytes) {
         return window.btoa(String.fromCharCode.apply(null, new Uint8Array(bytes)));
       }
+      
+      function removeChildNodesByClass(parent, className) {
+        var elements = parent.getElementsByClassName(className);
+
+        for (let i = 0; i < elements.length; i++)
+          elements[i].parentElement.removeChild(elements[i]);
+      }
 
       var last_execution_flow_loop_idx = -1;
+
+      function offer_redraw_execution_flow() {
+        if (last_mca == null)
+          return;
+
+        draw_execution_flow();
+      }
 
       function draw_execution_flow() {
         const e = last_mca;
@@ -80,8 +94,10 @@
         for (let i = 0; i < last_dump.length; i++) {
           let func = last_dump[i];
 
-          for (let j = 0; j < func.length; j++)
+          for (let j = 0; j < func.length; j++) {
             func[j].element.className = func[j].element.className.replaceAll(' analyzed', '');
+            removeChildNodesByClass(func[j].element, 'dependency');
+          }
         }
 
         let stats = document.getElementById('analysis');
@@ -105,7 +121,7 @@
         let headline_row = append_element(flow, "tr", "", "");
         let usage_row = append_element(flow, "tr", "", "");
         let flow_row = append_element(flow, "tr", "exec_flow_tr", "");
-        append_element(flow, "tr", "after_flow_tr", "");
+        append_element(flow_row, "div", "exec_flow_spacing", "").style.setProperty('--position', e.stats.cycles_total);
 
         let flow_lanes = [];
 
@@ -168,12 +184,25 @@
 
           inst.lanes = lanes;
           matched_inst.flow = inst;
+          matched_inst.element.className += " matched";
+          let addr = matched_inst.element.childNodes[0];
+          addr.style.setProperty('--weight', inst.executing);
 
+          if (inst.pressure != undefined) {
+            for (let j = 0; j < inst.pressure.length; j++) {
+              let p = inst.pressure[j];
+
+              var pressure = append_element(addr, 'div', 'dependency ' + p.type + (p.origin_offset > 0 ? ' below' : ' above'), '');
+              pressure.style.setProperty('--offset', Math.abs(p.origin_offset));
+            }
+          }
 
           (() => {
             let minstr = matched_inst;
 
             minstr.element.onmouseenter = () => {
+              minstr.element.className += " selected";
+
               for (let k = 0; k < minstr.flow.lanes.length; k++) {
                 let lane = minstr.flow.lanes[k];
                 lane.className += " selected";
@@ -181,26 +210,34 @@
             };
 
             minstr.element.onmouseleave = () => {
+              minstr.element.className = minstr.element.className.replaceAll(" selected", "");
+
               for (let k = 0; k < minstr.flow.lanes.length; k++) {
                 let lane = minstr.flow.lanes[k];
                 lane.className = lane.className.replaceAll(" selected", "");
               }
             };
-          })();
 
-          for (let j = 0; j < lanes.length; j++) {
-            (() => {
-              let minstr = matched_inst;
-
+            for (let j = 0; j < lanes.length; j++) {
               lanes[j].onmouseenter = () => {
                 minstr.element.className += " selected";
+
+                for (let k = 0; k < minstr.flow.lanes.length; k++) {
+                  let lane = minstr.flow.lanes[k];
+                  lane.className += " selected";
+                }
               };
 
               lanes[j].onmouseleave = () => {
                 minstr.element.className = minstr.element.className.replaceAll(" selected", "");
+                
+                for (let k = 0; k < minstr.flow.lanes.length; k++) {
+                  let lane = minstr.flow.lanes[k];
+                  lane.className = lane.className.replaceAll(" selected", "");
+                }
               };
-            })();
-          }
+            }
+          })();
         }
       }
 
@@ -288,6 +325,8 @@
             append_element(n, 'i', 'isa ' + data.isa, data.isa);
           }
         }
+
+        offer_redraw_execution_flow();
       }
 
       function load_zydec(dump_index) {
@@ -374,6 +413,8 @@
               append_element(e, 'i', 'comment', sym[j].comment);
           }
         }
+
+        offer_redraw_execution_flow();
       }
 
       function suggest_compile() {
@@ -600,10 +641,15 @@
       <div class="selector">
         <select id="compiler" onchange="javascript:content_changed();">
           <optgroup label="GCC x64">
+            <option value="g++-x64-11">gcc 11</option>
+            <option value="g++-x64-12">gcc 12</option>
             <option value="g++-x64-13">gcc 13</option>
           </optgroup>
           <optgroup label="Clang x64">
-            <option value="clang++-x64-16" selected="selected">clang 16</option>
+            <option value="clang++-x64-14">clang 14</option>
+            <option value="clang++-x64-15">clang 15</option>
+            <option value="clang++-x64-16">clang 16</option>
+            <option value="clang++-x64-17" selected="selected">clang 17</option>
           </optgroup>
         </select>
         <select id="opt_lvl" onchange="javascript:content_changed();">
