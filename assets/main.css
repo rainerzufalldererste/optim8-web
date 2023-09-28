@@ -5,6 +5,25 @@ html, body {
     overflow: hidden;
 }
 
+* {
+  scrollbar-width: auto;
+  scrollbar-color: #aaaaaa1f #5553;
+}
+
+*::-webkit-scrollbar {
+  width: 10pt;
+  height: 10pt;
+}
+
+*::-webkit-scrollbar-track, ::-webkit-scrollbar-corner {
+  background: #5553;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #aaaaaa1f;
+  border: 2pt solid #5553;
+}
+
 #header {
     height: 25pt;
     width: 100%;
@@ -22,18 +41,15 @@ html, body {
     border: 0;
     color: #aaa;
     font-family: 'Consolas', monospace;
-}
-
-.app_view.disasm {
+    vertical-align: top;
     background: #1e1e1e;
-    position: absolute;
 }
 
 .app_view.disasm .disasm, .app_view.disasm .stdout {
     padding: 5pt 15pt;
 }
 
-.app_view.disasm .selector {
+.app_view .selector {
     height: 25pt;
     width: 100%;
     background: #2d2d2d;
@@ -77,6 +93,37 @@ html, body {
     background: #666;
     cursor: ns-resize;
     margin: 0;
+}
+
+.tab {
+    width: fit-content;
+    display: inline-block;
+    background: #ffffff14;
+    height: 22pt;
+    vertical-align: top;
+    padding: 0 15pt;
+    margin: 2pt -5pt 0 8pt;
+    cursor: pointer;
+    border: 1pt solid #555;
+    border-bottom: none;
+  }
+
+.tab.active {
+    background: #1e1e1e;
+    border-color: #777;
+}
+
+.tab .tab_descriptor {
+    font-family: 'Segoe UI', monospace;
+    font-weight: bold;
+    font-size: 90%;
+    display: inline-block;
+    margin-top: 4pt;
+    color: #999;
+}
+
+.tab.active .tab_descriptor {
+    color: #ddd;
 }
 
 .selector .switch {
@@ -160,12 +207,12 @@ html, body {
     margin: 4pt -6pt 2pt 8pt;
     height: calc(100% - 8pt);
     padding: 2pt 10pt;
-    background: #424242;
+    background: #474747;
     border: none;
     border-radius: 2pt;
     color: #c6c6c6;
     display: inline-block;
-  }
+}
 
 .selector select optgroup {
     font-style: normal;
@@ -174,7 +221,7 @@ html, body {
 }
 
 .selector select optgroup option {
-    color: #ccc;
+    color: #ddd;
 }
 
 .app_view.disasm .disasm_container {
@@ -298,16 +345,19 @@ p.asm_line .dectype::after {
 p.asm_line .dectype {
     color: #5397cf;
     font-weight: normal;
+    font-style: normal;
 }
 
 p.asm_line .decbuiltin {
     color: #b5cea8;
     font-weight: normal;
+    font-style: normal;
 }
 
 p.asm_line .decbasic {
     color: #beb7ff;
     font-weight: normal;
+    font-style: normal;
 }
 
 i.isa.SSE, i.isa.SSE2, i.isa.SSE2MMX, i.isa.SSE_PREFETCH {
@@ -407,21 +457,8 @@ i.isa.FMA, i.isa.FMA4, i.isa.AES, i.isa.AVXAES, i.isa.AVX_VNNI {
     color: #bb7b54;
 }
 
-* {
-  scrollbar-width: auto;
-  scrollbar-color: #aaaaaa1f #5553;
-}
-
-*::-webkit-scrollbar {
-  width: 10pt;
-  height: 10pt;
-}
-
-*::-webkit-scrollbar-track, ::-webkit-scrollbar-corner {
-  background: #5553;
-}
-
-*::-webkit-scrollbar-thumb {
-  background-color: #aaaaaa1f;
-  border: 2pt solid #5553;
+.view3_opt {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
 }

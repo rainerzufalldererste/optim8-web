@@ -83,27 +83,32 @@
                             append_element(n, 'b', 'addr dec', data.addr.toString(16));
 
                             var dec = append_element(n, 'b', 'dec', sect[0]);
-                            dec.title = sect[2];
 
-                            dec.innerHTML = dec.innerHTML.replaceAll('(m512)', '<i class="dectype">m512</i>')
-                            dec.innerHTML = dec.innerHTML.replaceAll('(m256)', '<i class="dectype">m256</i>')
-                            dec.innerHTML = dec.innerHTML.replaceAll('(m128)', '<i class="dectype">m128</i>')
-                            dec.innerHTML = dec.innerHTML.replaceAll('(i64)', '<i class="dectype">i64</i>')
-                            dec.innerHTML = dec.innerHTML.replaceAll('(i32)', '<i class="dectype">i32</i>')
-                            dec.innerHTML = dec.innerHTML.replaceAll('(i16)', '<i class="dectype">i16</i>')
-                            dec.innerHTML = dec.innerHTML.replaceAll('(i8)', '<i class="dectype">i8</i>')
+                            dec.innerHTML = dec.innerHTML.replaceAll('(m512)', '<i class="dectype">m512</i>');
+                            dec.innerHTML = dec.innerHTML.replaceAll('(m256)', '<i class="dectype">m256</i>');
+                            dec.innerHTML = dec.innerHTML.replaceAll('(m128)', '<i class="dectype">m128</i>');
+                            dec.innerHTML = dec.innerHTML.replaceAll('(i64)', '<i class="dectype">i64</i>');
+                            dec.innerHTML = dec.innerHTML.replaceAll('(i32)', '<i class="dectype">i32</i>');
+                            dec.innerHTML = dec.innerHTML.replaceAll('(i16)', '<i class="dectype">i16</i>');
+                            dec.innerHTML = dec.innerHTML.replaceAll('(i8)', '<i class="dectype">i8</i>');
 
-                            dec.innerHTML = dec.innerHTML.replaceAll('extra_segment:', '<i class="decbuiltin">extra_segment:</i>')
-                            dec.innerHTML = dec.innerHTML.replaceAll('code_segment:', '<i class="decbuiltin">code_segment:</i>')
-                            dec.innerHTML = dec.innerHTML.replaceAll('stack_segment:', '<i class="decbuiltin">stack_segment:</i>')
-                            dec.innerHTML = dec.innerHTML.replaceAll('data_segment:', '<i class="decbuiltin">data_segment:</i>')
-                            dec.innerHTML = dec.innerHTML.replaceAll('f_segment:', '<i class="decbuiltin">f_segment:</i>')
-                            dec.innerHTML = dec.innerHTML.replaceAll('g_segment:', '<i class="decbuiltin">g_segment:</i>')
+                            dec.innerHTML = dec.innerHTML.replaceAll('extra_segment:', '<i class="decbuiltin">extra_segment:</i>');
+                            dec.innerHTML = dec.innerHTML.replaceAll('code_segment:', '<i class="decbuiltin">code_segment:</i>');
+                            dec.innerHTML = dec.innerHTML.replaceAll('stack_segment:', '<i class="decbuiltin">stack_segment:</i>');
+                            dec.innerHTML = dec.innerHTML.replaceAll('data_segment:', '<i class="decbuiltin">data_segment:</i>');
+                            dec.innerHTML = dec.innerHTML.replaceAll('f_segment:', '<i class="decbuiltin">f_segment:</i>');
+                            dec.innerHTML = dec.innerHTML.replaceAll('g_segment:', '<i class="decbuiltin">g_segment:</i>');
 
-                            dec.innerHTML = dec.innerHTML.replaceAll('compare(', '<i class="decbasic">compare</i>(')
-                            dec.innerHTML = dec.innerHTML.replaceAll('if (', '<i class="decbasic">if</i> (')
-                            dec.innerHTML = dec.innerHTML.replaceAll('goto ', '<i class="decbasic">goto</i> ')
-                            dec.innerHTML = dec.innerHTML.replaceAll('return;', '<i class="decbasic">return</i>;')
+                            dec.innerHTML = dec.innerHTML.replaceAll('carry_flag', '<i class="decbuiltin">carry_flag</i>');
+                            dec.innerHTML = dec.innerHTML.replaceAll('zero_flag', '<i class="decbuiltin">zero_flag</i>');
+                            dec.innerHTML = dec.innerHTML.replaceAll('sign_flag', '<i class="decbuiltin">sign_flag</i>');
+                            dec.innerHTML = dec.innerHTML.replaceAll('overflow_flag', '<i class="decbuiltin">overflow_flag</i>');
+                            dec.innerHTML = dec.innerHTML.replaceAll('parity_flag', '<i class="decbuiltin">parity_flag</i>');
+
+                            dec.innerHTML = dec.innerHTML.replaceAll('compare(', '<i class="decbasic">compare</i>(');
+                            dec.innerHTML = dec.innerHTML.replaceAll('if (', '<i class="decbasic">if</i> (');
+                            dec.innerHTML = dec.innerHTML.replaceAll('goto ', '<i class="decbasic">goto</i> ');
+                            dec.innerHTML = dec.innerHTML.replaceAll('return;', '<i class="decbasic">return</i>;');
 
                             if (sect.length > 1)
                                 append_element(n, 'b', 'comment dec', "// " + sect[1]);
@@ -399,7 +404,7 @@
                         <option value="zn4">Zen4</option>
                       </optgroup>
                     </select>
-                    <i class="label">decode</i>
+                    <i class="label">pseudo-decompile</i>
                     <label class="switch">
                       <input id="zydec" type="checkbox" checked="true" onchange="javascript:zydec_changed();">
                       <span class="slider"></span>
@@ -413,6 +418,61 @@
                 <div class="v_separator"></div>
                 <div class="stdout" id="stdout">
                     Edit or Paste Code To Begin Analyzing.
+                </div>
+            </div>
+            <div class="h_separator"></div>
+            <div class="app_view view3">
+                <div class="selector">
+                    <div class="tab active">
+                        <b class="tab_descriptor">Execution Flow</b>
+                        <select id="mca_arch" onchange="javascript:/*mca_changed();*/">
+                          <optgroup label="Intel">
+                            <option value="adl">Alderlake</option>
+                            <option value="brw">Broadwell</option>
+                            <option value="cnl">Cannonlake</option>
+                            <option value="ccl">Cascadelake</option>
+                            <option value="cpl">Cooperlake</option>
+                            <option value="elr">EmeraldRapids</option>
+                            <option value="gmt">Goldmont</option>
+                            <option value="gmp">GoldmontPlus</option>
+                            <option value="gdr">GrandRidge</option>
+                            <option value="gtr">GraniteRapids</option>
+                            <option value="hsw">Haswell</option>
+                            <option value="ilc">IcelakeClient</option>
+                            <option value="lcs">IcelakeServer</option>
+                            <option value="ivb">IvyBridge</option>
+                            <option value="mtl">Meteorlake</option>
+                            <option value="rtl">Raptorlake</option>
+                            <option value="rkl">Rocketlake</option>
+                            <option value="sdb">Sandybridge</option>
+                            <option value="spr">SapphireRapids</option>
+                            <option value="srf">Sierraforest</option>
+                            <option value="svm">Silvermont</option>
+                            <option value="slc">SkylakeClient</option>
+                            <option value="slx">SkylakeX</option>
+                            <option value="sls">SkylakeServer</option>
+                            <option value="tgl">Tigerlake</option>
+                            <option value="trm">Tremont</option>
+                          </optgroup>
+                          <optgroup label="AMD">
+                            <option value="zn1">Zen1</option>
+                            <option value="zn2">Zen2</option>
+                            <option value="zn3">Zen3</option>
+                            <option value="zn4" selected="selected">Zen4</option>
+                          </optgroup>
+                        </select>
+                    </div>
+                    <div class="tab">
+                        <b class="tab_descriptor">Intel Instinsics Guide</b>
+                    </div>
+                </div>
+                <div class="view3_opt" id="execution_flow_container">
+                    <div id="analysis_selector"></div>
+                    <div id="analysis"></div>
+                    <div id="execution_flow"></div>
+                </div>
+                <div class="view3_opt" id="documentation" style="display: none;">
+                    <input type="text" placeholder="Type anything to search..." id="documentation_search"></input>
                 </div>
             </div>
         </div>
