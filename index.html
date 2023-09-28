@@ -1,664 +1,731 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta charset="utf-8">
-        <title>Performance Analyzer</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="icon" type="image/png" href="/assets/favicon.png">
-        <link rel="stylesheet" href="/assets/main.css">
-    </head>
-    <body>
-        <div id="header">
-            <img src="/assets/logo.png"/>
-        </div>
-        <div id="app_container">
-            <script src="monaco-editor/min/vs/loader.js"></script>
-            <div id="code_view" class="app_view"></div>
-            <script type="module">
-                var code_editor;
-                var last_modification = Date.now();
-                const sleep_time = 3000;
-                const server_url = "http://localhost:61919/"
-                var last_dump;
-                var loops = [];
-                var view3State = "ef";
-                var last_mca;
 
-                function load_url(url, callback, obj) {
-                  console.log('requesting "' + url + '" with ' + JSON.stringify(obj) + '.');
-                  var xmlhttp;
-                  if (window.XMLHttpRequest) { // code for IE7+, Firefox, Chrome, Opera, Safari
-                      xmlhttp = new XMLHttpRequest();
-                  }
-                  else { // code for IE6, IE5
-                      xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
-                  }
-                  xmlhttp.onreadystatechange = function() {
-                      if (xmlhttp.readyState == 4 && xmlhttp.status >= 200 && xmlhttp.status < 300) {
-                          callback(JSON.parse(xmlhttp.responseText));
+<head>
+  <meta charset="utf-8">
+  <title>Performance Analyzer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="/assets/favicon.png">
+  <link rel="stylesheet" href="/assets/main.css">
+</head>
+
+<body>
+  <div id="header">
+    <img src="/assets/logo.png" />
+  </div>
+  <div id="app_container">
+    <script src="monaco-editor/min/vs/loader.js"></script>
+    <div id="code_view" class="app_view"></div>
+    <script type="module">
+      var code_editor;
+      var last_modification = Date.now();
+      const sleep_time = 3000;
+      const server_url = "http://localhost:61919/"
+      var last_dump;
+      var loops = [];
+      var view3State = "ef";
+      var last_mca;
+
+      function load_url(url, callback, obj) {
+        console.log('requesting "' + url + '" with ' + JSON.stringify(obj) + '.');
+        var xmlhttp;
+        if (window.XMLHttpRequest) { // code for IE7+, Firefox, Chrome, Opera, Safari
+          xmlhttp = new XMLHttpRequest();
+        }
+        else { // code for IE6, IE5
+          xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+        }
+        xmlhttp.onreadystatechange = function () {
+          if (xmlhttp.readyState == 4 && xmlhttp.status >= 200 && xmlhttp.status < 300) {
+            callback(JSON.parse(xmlhttp.responseText));
+          }
+        }
+        xmlhttp.open("POST", url, true);
+        xmlhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+        xmlhttp.send(JSON.stringify(obj));
+      }
+
+      function append_element(parent, type, className, innerText) {
+        const elem = document.createElement(type);
+        elem.innerText = innerText;
+        elem.className = className;
+        parent.appendChild(elem);
+        return elem;
+      }
+
+      function hexToBytes(hex) {
+        let bytes = [];
+
+        for (let i = 0; i < hex.length; i += 3)
+          bytes.push(parseInt(hex.substr(i, 2), 16));
+
+        return bytes;
+      }
+
+      function bytesToHex(byteArray) {
+        return Array.from(byteArray, function (byte) {
+          return ('0' + (byte & 0xFF).toString(16)).slice(-2);
+        }).join(' ');
+      }
+
+      function bytesToBase64(bytes) {
+        return window.btoa(String.fromCharCode.apply(null, new Uint8Array(bytes)));
+      }
+
+      var last_execution_flow_loop_idx = -1;
+
+      function draw_execution_flow() {
+        const e = last_mca;
+
+        for (let i = 0; i < last_dump.length; i++) {
+          let func = last_dump[i];
+
+          for (let j = 0; j < func.length; j++)
+            func[j].element.className = func[j].element.className.replaceAll(' analyzed', '');
+        }
+
+        let stats = document.getElementById('analysis');
+        stats.style.display = 'inherit';
+        stats.innerHTML = "";
+
+        append_element(stats, 'h3', 'stats_headline', 'Across ' + e.stats.iterations + ' Iterations:');
+        append_element(stats, 'p', 'stat', '~' + e.stats.cycles + ' Cycles / Iteration (dispatched -> retired)');
+        append_element(stats, 'p', 'stat', '~' + e.stats.execution_cycles + ' Cycles / Iteration (issued -> executed)');
+
+        append_element(stats, 'p', 'stat specific', 'Dispatched: ' + e.stats.dispatched + ' Cycles');
+        append_element(stats, 'p', 'stat specific', 'Pending: ' + e.stats.pending + ' Cycles');
+        append_element(stats, 'p', 'stat specific', 'Ready: ' + e.stats.ready + ' Cycles');
+        append_element(stats, 'p', 'stat specific', 'Executing: ' + e.stats.executing + ' Cycles');
+        append_element(stats, 'p', 'stat specific', 'Retiring: ' + e.stats.retiring + ' Cycles');
+
+        let flow = document.getElementById('execution_flow');
+        flow.style.display = 'inherit';
+        flow.innerHTML = "";
+
+        let headline_row = append_element(flow, "tr", "", "");
+        let usage_row = append_element(flow, "tr", "", "");
+        let flow_row = append_element(flow, "tr", "exec_flow_tr", "");
+        append_element(flow, "tr", "after_flow_tr", "");
+
+        let flow_lanes = [];
+
+        for (let i = 0; i < e.ports.length; i++) {
+          append_element(headline_row, "th", "mca", e.ports[i]);
+          append_element(usage_row, "td", "mca_th_stats", (e.stats.ports[i] * 100.0).toFixed(0)).style.setProperty('--usage', e.stats.ports[i]);
+
+          var lane = append_element(flow_row, "td", "flow_lane", "");
+          flow_lanes.push(lane);
+        }
+
+        console.log(e);
+
+        let func_idx = 0;
+        let instruction_idx = 0;
+
+        for (let i = 0; i < e.instructions.length; i++) {
+          let inst = e.instructions[i];
+
+          let lanes = [];
+
+          for (let k = 0; k < inst.iterations.length; k++) {
+            let iter = inst.iterations[k];
+
+            if (iter.ports == undefined || iter.ports.length == 0)
+              continue;
+
+            for (let j = 0; j < iter.ports.length; j++) {
+              let lane_idx = iter.ports[j];
+              let lane = append_element(flow_lanes[lane_idx], 'div', 'lane', '');
+              lane.style.setProperty('--start', iter.issued);
+              lane.style.setProperty('--length', iter.executed - iter.issued);
+              lane.style.setProperty('--iteration', k);
+              lane.style.setProperty('--lane', lane_idx);
+              lanes.push(lane);
+            }
+          }
+
+          // Connect with displayed instruction.
+          let matched_inst = null;
+
+          while (func_idx < last_dump.length) {
+            if (last_dump[func_idx].length <= instruction_idx) {
+              instruction_idx = 0;
+              func_idx++;
+              continue;
+            }
+            else {
+              if (last_dump[func_idx][instruction_idx].addr == inst.addr) {
+                matched_inst = last_dump[func_idx][instruction_idx];
+                break;
+              }
+
+              instruction_idx++;
+            }
+          }
+
+          if (matched_inst == null)
+            continue;
+
+          inst.lanes = lanes;
+          matched_inst.flow = inst;
+
+
+          (() => {
+            let minstr = matched_inst;
+
+            minstr.element.onmouseenter = () => {
+              for (let k = 0; k < minstr.flow.lanes.length; k++) {
+                let lane = minstr.flow.lanes[k];
+                lane.className += " selected";
+              }
+            };
+
+            minstr.element.onmouseleave = () => {
+              for (let k = 0; k < minstr.flow.lanes.length; k++) {
+                let lane = minstr.flow.lanes[k];
+                lane.className = lane.className.replaceAll(" selected", "");
+              }
+            };
+          })();
+
+          for (let j = 0; j < lanes.length; j++) {
+            (() => {
+              let minstr = matched_inst;
+
+              lanes[j].onmouseenter = () => {
+                minstr.element.className += " selected";
+              };
+
+              lanes[j].onmouseleave = () => {
+                minstr.element.className = minstr.element.className.replaceAll(" selected", "");
+              };
+            })();
+          }
+        }
+      }
+
+      function suggest_execution_flow(loop_idx) {
+        last_execution_flow_loop_idx = loop_idx;
+
+        if (view3State != 'ef')
+          return;
+
+        let bytes = [];
+
+        const start = loops[loop_idx].start;
+        const end = loops[loop_idx].end;
+
+        for (let i = 0; i < last_dump.length; i++) {
+          let func = last_dump[i];
+
+          for (let j = 0; j < func.length; j++) {
+            let x = func[j];
+
+            if (x.addr >= start && x.addr < end)
+              bytes = bytes.concat(x.bytes);
+          }
+        }
+
+        const base64 = bytesToBase64(bytes);
+        const arch = document.getElementById("mca_arch").value;
+        const request = { 'bytes': base64, 'addr': start, 'march': arch };
+
+        (() => {
+          let loop_index = loop_idx;
+
+          load_url(server_url + 'execution_flow', (e) => {
+            last_mca = e;
+
+            draw_execution_flow();
+          }, request);
+        })();
+      }
+
+      function display_zydec() {
+        for (let i = 0; i < last_dump.length; i++) {
+          let sym = last_dump[i];
+
+          for (let j = 0; j < sym.length; j++) {
+            let data = sym[j];
+            let n = data.element;
+            n.innerHTML = "";
+
+            let sect = data.dec.split('// ');
+
+            append_element(n, 'b', 'addr dec', data.addr.toString(16));
+
+            var dec = append_element(n, 'b', 'dec', sect[0]);
+
+            dec.innerHTML = dec.innerHTML.replaceAll('(m512)', '<i class="dectype">m512</i>');
+            dec.innerHTML = dec.innerHTML.replaceAll('(m256)', '<i class="dectype">m256</i>');
+            dec.innerHTML = dec.innerHTML.replaceAll('(m128)', '<i class="dectype">m128</i>');
+            dec.innerHTML = dec.innerHTML.replaceAll('(i64)', '<i class="dectype">i64</i>');
+            dec.innerHTML = dec.innerHTML.replaceAll('(i32)', '<i class="dectype">i32</i>');
+            dec.innerHTML = dec.innerHTML.replaceAll('(i16)', '<i class="dectype">i16</i>');
+            dec.innerHTML = dec.innerHTML.replaceAll('(i8)', '<i class="dectype">i8</i>');
+
+            dec.innerHTML = dec.innerHTML.replaceAll('extra_segment:', '<i class="decbuiltin">extra_segment:</i>');
+            dec.innerHTML = dec.innerHTML.replaceAll('code_segment:', '<i class="decbuiltin">code_segment:</i>');
+            dec.innerHTML = dec.innerHTML.replaceAll('stack_segment:', '<i class="decbuiltin">stack_segment:</i>');
+            dec.innerHTML = dec.innerHTML.replaceAll('data_segment:', '<i class="decbuiltin">data_segment:</i>');
+            dec.innerHTML = dec.innerHTML.replaceAll('f_segment:', '<i class="decbuiltin">f_segment:</i>');
+            dec.innerHTML = dec.innerHTML.replaceAll('g_segment:', '<i class="decbuiltin">g_segment:</i>');
+
+            dec.innerHTML = dec.innerHTML.replaceAll('carry_flag', '<i class="decbuiltin">carry_flag</i>');
+            dec.innerHTML = dec.innerHTML.replaceAll('zero_flag', '<i class="decbuiltin">zero_flag</i>');
+            dec.innerHTML = dec.innerHTML.replaceAll('sign_flag', '<i class="decbuiltin">sign_flag</i>');
+            dec.innerHTML = dec.innerHTML.replaceAll('overflow_flag', '<i class="decbuiltin">overflow_flag</i>');
+            dec.innerHTML = dec.innerHTML.replaceAll('parity_flag', '<i class="decbuiltin">parity_flag</i>');
+
+            dec.innerHTML = dec.innerHTML.replaceAll('compare(', '<i class="decbasic">compare</i>(');
+            dec.innerHTML = dec.innerHTML.replaceAll('if (', '<i class="decbasic">if</i> (');
+            dec.innerHTML = dec.innerHTML.replaceAll('goto ', '<i class="decbasic">goto</i> ');
+            dec.innerHTML = dec.innerHTML.replaceAll('return;', '<i class="decbasic">return</i>;');
+
+            if (sect.length > 1)
+              append_element(n, 'b', 'comment dec', "// " + sect[1]);
+
+            append_element(n, 'i', 'isa ' + data.isa, data.isa);
+          }
+        }
+      }
+
+      function load_zydec(dump_index) {
+        let bytes = [];
+        let func = last_dump[dump_index];
+
+        for (let i = 0; i < func.length; i++)
+          bytes = bytes.concat(func[i].bytes);
+
+        const base64 = bytesToBase64(bytes);
+        const request = { 'bytes': base64, 'addr': func[0].addr };
+
+        (() => {
+          let dump_idx = dump_index;
+
+          load_url(server_url + 'zydec', (e) => {
+            let func = last_dump[dump_idx];
+            let idx = 0;
+            let data = e.zydec.split('\n');
+
+            for (let i = 0; i < data.length; i++) {
+              if (data[i] == '')
+                continue;
+
+              let sect = data[i].split('\t');
+              let addr = parseInt(sect[0]);
+
+              let n = func[idx];
+
+              if (n.addr == addr) {
+                idx++;
+
+                n.rawZydec = data[i];
+                n.dec = sect[1];
+                n.isa = sect[2];
+              }
+            }
+
+            if (last_dump.length > dump_idx + 1) {
+              load_zydec(dump_idx + 1);
+            }
+            else {
+              last_dump['zydec'] = true;
+              display_zydec();
+            }
+          }, request);
+        })();
+      }
+
+      function try_display_zydec() {
+        if (last_dump['zydec'] == true)
+          display_zydec();
+        else
+          load_zydec(0);
+      }
+
+      function display_disasm() {
+        var asm = document.getElementById('asm');
+        asm.innerHTML = "";
+
+        for (let i = 0; i < last_dump.length; i++) {
+          let sym = last_dump[i];
+
+          var container = append_element(asm, 'div', 'function', '');
+          sym.element = append_element(container, 'h3', 'symbol', sym.name);
+
+          for (let j = 0; j < sym.length; j++) {
+            var e = append_element(container, 'p', 'asm_line', '');
+            e.origin = { 'sym': i, 'line': j, 'addr': sym[j].addr };
+            sym[j].element = e;
+            append_element(e, 'b', 'addr', sym[j].addrStr);
+            append_element(e, 'i', 'bytes', bytesToHex(sym[j].bytes));
+            append_element(e, 'b', sym[j].isJump ? 'jump' : 'mnemonic', sym[j].mnemonic);
+            var params = append_element(e, 'i', 'params', sym[j].params);
+            params.innerHTML = params.innerHTML.replaceAll('ZMMWORD PTR ', '<i class="ptr">ZMMWORD  PTR </i> ');
+            params.innerHTML = params.innerHTML.replaceAll('YMMWORD PTR ', '<i class="ptr">YMMWORD  PTR </i> ');
+            params.innerHTML = params.innerHTML.replaceAll('XMMWORD PTR ', '<i class="ptr">XMMWORD  PTR </i> ');
+            params.innerHTML = params.innerHTML.replaceAll('QWORD PTR ', '<i class="ptr">QWORD  PTR </i> ');
+            params.innerHTML = params.innerHTML.replaceAll('DWORD PTR ', '<i class="ptr">DWORD  PTR </i> ');
+            params.innerHTML = params.innerHTML.replaceAll('WORD PTR ', '<i class="ptr">WORD  PTR </i> ');
+            params.innerHTML = params.innerHTML.replaceAll('BYTE PTR ', '<i class="ptr">BYTE  PTR </i> ');
+
+            if (sym[j].comment)
+              append_element(e, 'i', 'comment', sym[j].comment);
+          }
+        }
+      }
+
+      function suggest_compile() {
+        if ((Date.now() - last_modification) >= sleep_time - 2) {
+          last_dump = null;
+          loops = [];
+          document.getElementById('analysis_selector').style.display = "hidden";
+          document.getElementById('analysis').style.display = "hidden";
+          document.getElementById('execution_flow').style.display = "hidden";
+          last_execution_flow_loop_idx = -1;
+          last_modification = Date.now();
+          var compiler = document.getElementById("compiler").value;
+          var opt = document.getElementById("opt_lvl").value;
+          var march = document.getElementById("march").value;
+          load_url(server_url + compiler, (e) => {
+            var compiler_out = e['compiler'];
+            var objdump_out = e['objdump'];
+            var stdout = document.getElementById('stdout');
+
+            if (compiler_out == '')
+              compiler_out = "Success!";
+
+            stdout.innerText = compiler_out;
+            var dumplines = objdump_out.split('\n');
+            last_dump = [];
+            var last_sym = [];
+            var expect_symbol = true;
+            const jumps = ['jmp', 'jb', 'jbe', 'jcxz', 'je', 'jecxz', 'jl', 'jle', 'jnb', 'jnbe', 'jnl', 'jnle', 'jno', 'jnp', 'jns', 'jnz', 'jo', 'jp', 'js', 'jz'];
+
+            for (let i = 0; i < dumplines.length; i++) {
+              let x = dumplines[i];
+
+              if (x == '') {
+                expect_symbol = true;
+              }
+              else if (expect_symbol) {
+                expect_symbol = false;
+                last_sym = [];
+                var prefix = x.split('<')[0];
+                last_sym.name = x.substring(prefix.length);
+                last_dump.push(last_sym);
+              }
+              else {
+                const trimmed = x.trim();
+                const sect = x.split('\t');
+                const addrStr = sect[0].replaceAll(':', '').trim(' ');
+                const addr = parseInt(addrStr, 16);
+                const hex = sect[1].trim(' ');
+                const bytes = hexToBytes(hex);
+                const _asm = sect[2].trim(' ').replaceAll(',', ", ").replaceAll('  ', ' ');
+                const mnemonic = _asm.split(' ')[0];
+                const params = _asm.substring(mnemonic.length).trim();
+                const beforeComment = params.split('#')[0];
+                const comment = params.substring(beforeComment.length);
+                const isJump = jumps.includes(mnemonic);
+                var target;
+
+                if (isJump) {
+                  target = parseInt(beforeComment.split(' ')[0], 16);
+
+                  if (target < addr)
+                    loops.push({ 'start': target, 'end': addr + bytes.length - 1 });
+                }
+
+                last_sym.push({ 'raw': x, 'addrStr': addrStr, 'addr': addr, 'bytes': bytes, 'asm': _asm, 'mnemonic': mnemonic, 'params': beforeComment, 'comment': comment, 'isJump': isJump, 'target': target });
+              }
+            }
+
+            var loop_selector = document.getElementById('analysis_selector');
+            loop_selector.innerHTML = "Select Region to Analyze: ";
+
+            if (loops.length == 1) {
+              loop_selector.style.display = "none";
+
+              suggest_execution_flow(0);
+            }
+            else {
+              loop_selector.style.display = "inherit";
+
+              for (let i = 0; i < loops.length; i++) {
+                let e = append_element(loop_selector, 'div', 'loop_selection', loops[i].start.toString(16) + " - " + loops[i].end.toString(16));
+
+                (function () {
+                  let e_ = e;
+                  let idx = i;
+
+                  e_.onclick = () => {
+                    suggest_execution_flow(idx);
+                  };
+
+                  e_.onmouseenter = () => {
+                    const start = loops[idx].start;
+                    const end = loops[idx].end;
+
+                    for (let j = 0; j < last_dump.length; j++) {
+                      let func = last_dump[j];
+
+                      for (let k = 0; k < func.length; k++) {
+                        let x = func[k];
+
+                        if (x.addr >= start && x.addr < end)
+                          x.element.className += " hover";
                       }
-                  }
-                  xmlhttp.open("POST", url, true);
-                  xmlhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-                  xmlhttp.send(JSON.stringify(obj));
-                }
-
-                function append_element(parent, type, className, innerText) {
-                    const elem = document.createElement(type);
-                    elem.innerText = innerText;
-                    elem.className = className;
-                    parent.appendChild(elem);
-                    return elem;
-                }
-
-                function hexToBytes(hex) {
-                    let bytes = [];
-
-                    for (let i = 0; i < hex.length; i += 3)
-                        bytes.push(parseInt(hex.substr(i, 2), 16));
-
-                    return bytes;
-                }
-
-                function bytesToHex(byteArray) {
-                  return Array.from(byteArray, function(byte) {
-                    return ('0' + (byte & 0xFF).toString(16)).slice(-2);
-                  }).join(' ');
-                }
-
-                function bytesToBase64(bytes) {
-                    return window.btoa(String.fromCharCode.apply(null, new Uint8Array(bytes)));
-                }
-
-                var last_execution_flow_loop_idx = -1;
-
-                function draw_execution_flow() {
-                    const e = last_mca;
-
-                    for (let i = 0; i < last_dump.length; i++)
-                    {
-                        let func = last_dump[i];
-                    
-                        for (let j = 0; j < func.length; j++)
-                            func[j].element.className = func[j].element.className.replaceAll(' analyzed', '');
                     }
-                    
-                    var stats = document.getElementById('analysis');
-                    stats.style.display = 'inherit';
-                    stats.innerHTML = "";
+                  };
 
-                    append_element(stats, 'h3', 'stats_headline', 'Across ' + e.stats.iterations + ' Iterations:');
-                    append_element(stats, 'p', 'stat', '~' + e.stats.cycles + ' Cycles / Iteration (dispatched -> retired)');
-                    append_element(stats, 'p', 'stat', '~' + e.stats.execution_cycles + ' Cycles / Iteration (issued -> executed)');
+                  e_.onmouseleave = () => {
+                    const start = loops[idx].start;
+                    const end = loops[idx].end;
 
-                    append_element(stats, 'p', 'stat specific', 'Dispatched: ' + e.stats.dispatched + ' Cycles');
-                    append_element(stats, 'p', 'stat specific', 'Pending: ' + e.stats.pending + ' Cycles');
-                    append_element(stats, 'p', 'stat specific', 'Ready: ' + e.stats.ready + ' Cycles');
-                    append_element(stats, 'p', 'stat specific', 'Executing: ' + e.stats.executing + ' Cycles');
-                    append_element(stats, 'p', 'stat specific', 'Retiring: ' + e.stats.retiring + ' Cycles');
+                    for (let j = 0; j < last_dump.length; j++) {
+                      let func = last_dump[j];
 
-                    var flow = document.getElementById('execution_flow');
-                    flow.style.display = 'inherit';
-                    flow.innerHTML = "";
+                      for (let k = 0; k < func.length; k++) {
+                        let x = func[k];
 
-                    var headline_row = append_element(flow, "tr", "", "");
-                    var usage_row = append_element(flow, "tr", "", "");
-                    var flow_row = append_element(flow, "tr", "", "");
-
-                    for (let i = 0; i < e.ports.length; i++)
-                    {
-                        append_element(headline_row, "th", "mca", e.ports[i]);
-                        append_element(usage_row, "td", "mca_th_stats", (e.stats.ports[i] * 100.0).toFixed(0) + '%').style.setProperty('--usage', e.stats.ports[i]);
-
-                        append_element(flow_row, "td", "flow_lane", "");
+                        if (x.addr >= start && x.addr < end)
+                          x.element.className = x.element.className.replaceAll(" hover", "");
+                      }
                     }
-
-                    
-                }
-
-                function suggest_execution_flow(loop_idx) {
-                    last_execution_flow_loop_idx = loop_idx;
-
-                    if (view3State != 'ef')
-                        return;
-
-                    let bytes = [];
-                    
-                    const start = loops[loop_idx].start;
-                    const end = loops[loop_idx].end;
-
-                    for (let i = 0; i < last_dump.length; i++)
-                    {
-                        let func = last_dump[i];
-                    
-                        for (let j = 0; j < func.length; j++)
-                        {
-                            let x = func[j];
-
-                            if (x.addr >= start && x.addr < end)
-                                bytes = bytes.concat(x.bytes);
-                        }
-                    }
-
-                    const base64 = bytesToBase64(bytes);
-                    const arch = document.getElementById("mca_arch").value;
-                    const request = { 'bytes': base64, 'addr': start, 'march': arch };
-
-                    (() => {
-                        let loop_index = loop_idx;
-
-                        load_url(server_url + 'execution_flow', (e) => {
-                            last_mca = e;
-
-                            draw_execution_flow();
-                        }, request);
-                    })();
-                }
-
-                function display_zydec() {
-                    for (let i = 0; i < last_dump.length; i++)
-                    {
-                        let sym = last_dump[i];
-
-                        for (let j = 0; j < sym.length; j++)
-                        {
-                            let data = sym[j];
-                            let n = data.element;
-                            n.innerHTML = "";
-
-                            let sect = data.dec.split('// ');
-
-                            append_element(n, 'b', 'addr dec', data.addr.toString(16));
-
-                            var dec = append_element(n, 'b', 'dec', sect[0]);
-
-                            dec.innerHTML = dec.innerHTML.replaceAll('(m512)', '<i class="dectype">m512</i>');
-                            dec.innerHTML = dec.innerHTML.replaceAll('(m256)', '<i class="dectype">m256</i>');
-                            dec.innerHTML = dec.innerHTML.replaceAll('(m128)', '<i class="dectype">m128</i>');
-                            dec.innerHTML = dec.innerHTML.replaceAll('(i64)', '<i class="dectype">i64</i>');
-                            dec.innerHTML = dec.innerHTML.replaceAll('(i32)', '<i class="dectype">i32</i>');
-                            dec.innerHTML = dec.innerHTML.replaceAll('(i16)', '<i class="dectype">i16</i>');
-                            dec.innerHTML = dec.innerHTML.replaceAll('(i8)', '<i class="dectype">i8</i>');
-
-                            dec.innerHTML = dec.innerHTML.replaceAll('extra_segment:', '<i class="decbuiltin">extra_segment:</i>');
-                            dec.innerHTML = dec.innerHTML.replaceAll('code_segment:', '<i class="decbuiltin">code_segment:</i>');
-                            dec.innerHTML = dec.innerHTML.replaceAll('stack_segment:', '<i class="decbuiltin">stack_segment:</i>');
-                            dec.innerHTML = dec.innerHTML.replaceAll('data_segment:', '<i class="decbuiltin">data_segment:</i>');
-                            dec.innerHTML = dec.innerHTML.replaceAll('f_segment:', '<i class="decbuiltin">f_segment:</i>');
-                            dec.innerHTML = dec.innerHTML.replaceAll('g_segment:', '<i class="decbuiltin">g_segment:</i>');
-
-                            dec.innerHTML = dec.innerHTML.replaceAll('carry_flag', '<i class="decbuiltin">carry_flag</i>');
-                            dec.innerHTML = dec.innerHTML.replaceAll('zero_flag', '<i class="decbuiltin">zero_flag</i>');
-                            dec.innerHTML = dec.innerHTML.replaceAll('sign_flag', '<i class="decbuiltin">sign_flag</i>');
-                            dec.innerHTML = dec.innerHTML.replaceAll('overflow_flag', '<i class="decbuiltin">overflow_flag</i>');
-                            dec.innerHTML = dec.innerHTML.replaceAll('parity_flag', '<i class="decbuiltin">parity_flag</i>');
-
-                            dec.innerHTML = dec.innerHTML.replaceAll('compare(', '<i class="decbasic">compare</i>(');
-                            dec.innerHTML = dec.innerHTML.replaceAll('if (', '<i class="decbasic">if</i> (');
-                            dec.innerHTML = dec.innerHTML.replaceAll('goto ', '<i class="decbasic">goto</i> ');
-                            dec.innerHTML = dec.innerHTML.replaceAll('return;', '<i class="decbasic">return</i>;');
-
-                            if (sect.length > 1)
-                                append_element(n, 'b', 'comment dec', "// " + sect[1]);
-
-                            append_element(n, 'i', 'isa ' + data.isa, data.isa);
-                        }
-                    }
-                }
-
-                function load_zydec(dump_index) {
-                    let bytes = [];
-                    let func = last_dump[dump_index];
-                    
-                    for (let i = 0; i < func.length; i++)
-                        bytes = bytes.concat(func[i].bytes);
-
-                    const base64 = bytesToBase64(bytes);
-                    const request = { 'bytes': base64, 'addr': func[0].addr };
-
-                    (() => {
-                        let dump_idx = dump_index;
-
-                        load_url(server_url + 'zydec', (e) => {
-                            let func = last_dump[dump_idx];
-                            let idx = 0;
-                            let data = e.zydec.split('\n');
-
-                            for (let i = 0; i < data.length; i++)
-                            {
-                                if (data[i] == '')
-                                    continue;
-
-                                let sect = data[i].split('\t');
-                                let addr = parseInt(sect[0]);
-
-                                let n = func[idx];
-
-                                if (n.addr == addr)
-                                {
-                                    idx++;
-
-                                    n.rawZydec = data[i];
-                                    n.dec = sect[1];
-                                    n.isa = sect[2];
-                                }
-                            }
-
-                            if (last_dump.length > dump_idx + 1)
-                            {
-                                load_zydec(dump_idx + 1);
-                            }
-                            else
-                            {
-                                last_dump['zydec'] = true;
-                                display_zydec();
-                            }
-                        }, request);
-                    })();
-                }
-
-                function try_display_zydec() {
-                    if (last_dump['zydec'] == true)
-                        display_zydec();
-                    else
-                        load_zydec(0);
-                }
-
-                function display_disasm() {
-                    var asm = document.getElementById('asm');
-                    asm.innerHTML = "";
-
-                    for (let i = 0; i < last_dump.length; i++)
-                    {
-                        let sym = last_dump[i];
-
-                        var container = append_element(asm, 'div', 'function', '');
-                        sym.element = append_element(container, 'h3', 'symbol', sym.name);
-
-                        for (let j = 0; j < sym.length; j++)
-                        {
-                            var e = append_element(container, 'p', 'asm_line', '');
-                            e.origin = { 'sym': i, 'line': j, 'addr': sym[j].addr };
-                            sym[j].element = e;
-                            append_element(e, 'b', 'addr', sym[j].addrStr);
-                            append_element(e, 'i', 'bytes', bytesToHex(sym[j].bytes));
-                            append_element(e, 'b', sym[j].isJump ? 'jump' : 'mnemonic', sym[j].mnemonic);
-                            var params = append_element(e, 'i', 'params', sym[j].params);
-                            params.innerHTML = params.innerHTML.replaceAll('ZMMWORD PTR ', '<i class="ptr">ZMMWORD  PTR </i> ');
-                            params.innerHTML = params.innerHTML.replaceAll('YMMWORD PTR ', '<i class="ptr">YMMWORD  PTR </i> ');
-                            params.innerHTML = params.innerHTML.replaceAll('XMMWORD PTR ', '<i class="ptr">XMMWORD  PTR </i> ');
-                            params.innerHTML = params.innerHTML.replaceAll('QWORD PTR ', '<i class="ptr">QWORD  PTR </i> ');
-                            params.innerHTML = params.innerHTML.replaceAll('DWORD PTR ', '<i class="ptr">DWORD  PTR </i> ');
-                            params.innerHTML = params.innerHTML.replaceAll('WORD PTR ', '<i class="ptr">WORD  PTR </i> ');
-                            params.innerHTML = params.innerHTML.replaceAll('BYTE PTR ', '<i class="ptr">BYTE  PTR </i> ');
-
-                            if (sym[j].comment)
-                                append_element(e, 'i', 'comment', sym[j].comment);
-                        }
-                    }
-                }
-
-                function suggest_compile() {
-                    if ((Date.now() - last_modification) >= sleep_time - 2) {
-                        last_dump = null;
-                        loops = [];
-                        document.getElementById('analysis_selector').style.display = "hidden";
-                        document.getElementById('analysis').style.display = "hidden";
-                        document.getElementById('execution_flow').style.display = "hidden";
-                        last_execution_flow_loop_idx = -1;
-                        last_modification = Date.now();
-                        var compiler = document.getElementById("compiler").value;
-                        var opt = document.getElementById("opt_lvl").value;
-                        var march = document.getElementById("march").value;
-                        load_url(server_url + compiler, (e) => {
-                            var compiler_out = e['compiler'];
-                            var objdump_out = e['objdump'];
-                            var stdout = document.getElementById('stdout');
-
-                            if (compiler_out == '')
-                                compiler_out = "Success!";
-
-                            stdout.innerText = compiler_out;
-                            var dumplines = objdump_out.split('\n');
-                            last_dump = [];
-                            var last_sym = [];
-                            var expect_symbol = true;
-                            const jumps = ['jmp', 'jb', 'jbe', 'jcxz', 'je', 'jecxz', 'jl', 'jle', 'jnb', 'jnbe', 'jnl', 'jnle', 'jno', 'jnp', 'jns', 'jnz', 'jo', 'jp', 'js', 'jz'];
-
-                            for (let i = 0; i < dumplines.length; i++)
-                            {
-                                let x = dumplines[i];
-
-                                if (x == '')
-                                {
-                                    expect_symbol = true;
-                                }
-                                else if (expect_symbol)
-                                {
-                                    expect_symbol = false;
-                                    last_sym = [];
-                                    var prefix = x.split('<')[0];
-                                    last_sym.name = x.substring(prefix.length);
-                                    last_dump.push(last_sym);
-                                }
-                                else
-                                {
-                                    const trimmed = x.trim();
-                                    const sect = x.split('\t');
-                                    const addrStr = sect[0].replaceAll(':', '').trim(' ');
-                                    const addr = parseInt(addrStr, 16);
-                                    const hex = sect[1].trim(' ');
-                                    const bytes = hexToBytes(hex);
-                                    const _asm = sect[2].trim(' ').replaceAll(',', ", ").replaceAll('  ', ' ');
-                                    const mnemonic = _asm.split(' ')[0];
-                                    const params = _asm.substring(mnemonic.length).trim();
-                                    const beforeComment = params.split('#')[0];
-                                    const comment = params.substring(beforeComment.length);
-                                    const isJump = jumps.includes(mnemonic);
-                                    var target;
-
-                                    if (isJump)
-                                    {
-                                        target = parseInt(beforeComment.split(' ')[0], 16);
-
-                                        if (target < addr)
-                                            loops.push({'start': target, 'end': addr + bytes.length - 1});
-                                    }
-
-                                    last_sym.push({ 'raw': x, 'addrStr': addrStr, 'addr': addr, 'bytes': bytes, 'asm': _asm, 'mnemonic': mnemonic, 'params': beforeComment, 'comment': comment, 'isJump': isJump, 'target': target });
-                                }
-                            }
-
-                            var loop_selector = document.getElementById('analysis_selector');
-                            loop_selector.innerHTML = "Select Region to Analyze: ";
-
-                            if (loops.length == 1)
-                            {
-                                loop_selector.style.display = "none";
-                            
-                                suggest_execution_flow(0);
-                            }
-                            else
-                            {
-                                loop_selector.style.display = "inherit";
-                                
-                                for (let i = 0; i < loops.length; i++)
-                                {
-                                    let e = append_element(loop_selector, 'div', 'loop_selection', loops[i].start.toString(16) + " - " + loops[i].end.toString(16));
-
-                                    (function () {
-                                        let e_ = e;
-                                        let idx = i;
-
-                                        e_.onclick = () => {
-                                            suggest_execution_flow(idx);
-                                        };
-
-                                        e_.onmouseenter = () => {
-                                            const start = loops[idx].start;
-                                            const end = loops[idx].end;
-
-                                            for (let j = 0; j < last_dump.length; j++)
-                                            {
-                                                let func = last_dump[j];
-
-                                                for (let k = 0; k < func.length; k++)
-                                                {
-                                                    let x = func[k];
-
-                                                    if (x.addr >= start && x.addr < end)
-                                                        x.element.className += " hover";
-                                                }
-                                            }
-                                        };
-
-                                        e_.onmouseleave = () => {
-                                            const start = loops[idx].start;
-                                            const end = loops[idx].end;
-
-                                            for (let j = 0; j < last_dump.length; j++)
-                                            {
-                                                let func = last_dump[j];
-
-                                                for (let k = 0; k < func.length; k++)
-                                                {
-                                                    let x = func[k];
-
-                                                    if (x.addr >= start && x.addr < end)
-                                                        x.element.className = x.element.className.replaceAll(" hover", "");
-                                                }
-                                            }
-                                        };
-                                    }) ();
-                                }
-                            }
-
-                            display_disasm();
-
-                            if (document.getElementById('zydec').checked)
-                                load_zydec(0);
-
-                        }, { 'opt': opt, 'march': march, 'src': code_editor.getValue() });
-                    }
-                }
-
-                window.content_changed = function () {
-                    document.getElementById('stdout').innerText = "Waiting for Compile...";
-                    last_modification = Date.now();
-                    setTimeout(suggest_compile, sleep_time);
-                }
-
-                window.zydec_changed = function() {
-                    if (document.getElementById('zydec').checked)
-                        try_display_zydec();
-                    else
-                        display_disasm();
-                }
-
-                window.mca_changed = function () {
-                    if (last_execution_flow_loop_idx > 0)
-                        suggest_execution_flow(last_execution_flow_loop_idx);
-                }
-
-                require.config({ paths: { 'vs': 'monaco-editor/min/vs' }});
-                require(['vs/editor/editor.main'], function() {
-                    code_editor = monaco.editor.create(document.getElementById('code_view'), {
-                        value: [
-                            '#include <stdlib.h>',
-                            '#include <stdint.h>',
-                            '',
-                            '#if defined(_MSC_VER) && !defined(__llvm__)',
-                            '#include <intrin.h>',
-                            '#else',
-                            '#include <x86intrin.h>',
-                            '#endif',
-                            '',
-                            'void merge_lines(const uint32_t *pSourceLine, const uint32_t *pSourceLine2, const size_t length, uint32_t *pTargetLine)',
-                            '{',
-                            '  // what are we analzying today?',
-                            '  const __m128i lower7bits = _mm_set1_epi8(0b1111111);',
-                            '  const __m128i oneA = _mm_set1_epi64x(0x0000010001010001LL);',
-                            '  const __m128i oneB = _mm_set1_epi64x(0x0101000100000100LL);',
-                            '',
-                            '  constexpr size_t colorsPerVector = sizeof(__m128i) / sizeof(uint32_t);',
-                            '',
-                            '  for (size_t x = 0; x < length; x += 2)',
-                            '  {',
-                            '    // load two vectors from both lines of the source.',
-                            '    const __m128i line00r = _mm_loadu_si128(reinterpret_cast<const __m128i *>(pSourceLine + x * 2));',
-                            '    const __m128i line01r = _mm_loadu_si128(reinterpret_cast<const __m128i *>(pSourceLine + x * 2 + colorsPerVector));',
-                            '    const __m128i line10r = _mm_loadu_si128(reinterpret_cast<const __m128i *>(pSourceLine2 + x * 2));',
-                            '    const __m128i line11r = _mm_loadu_si128(reinterpret_cast<const __m128i *>(pSourceLine2 + x * 2 + colorsPerVector));',
-                            '',
-                            '    // dither with one (saturate to not accidentally cause an overflow with 0xFF) and divide by two.',
-                            '    const __m128i line00 = _mm_and_si128(lower7bits, _mm_srli_epi32(_mm_adds_epu8(line00r, oneA), 1));',
-                            '    const __m128i line01 = _mm_and_si128(lower7bits, _mm_srli_epi32(_mm_adds_epu8(line01r, oneB), 1));',
-                            '    const __m128i line10 = _mm_and_si128(lower7bits, _mm_srli_epi32(_mm_adds_epu8(line10r, oneB), 1));',
-                            '    const __m128i line11 = _mm_and_si128(lower7bits, _mm_srli_epi32(_mm_adds_epu8(line11r, oneA), 1));',
-                            '',
-                            '    // add, dither again and divide by two.',
-                            '    const __m128i line_0 = _mm_and_si128(lower7bits, _mm_srli_epi32(_mm_adds_epu8(_mm_add_epi8(line00, line10), oneA), 1));',
-                            '    const __m128i line_1 = _mm_and_si128(lower7bits, _mm_srli_epi32(_mm_adds_epu8(_mm_add_epi8(line01, line11), oneB), 1));',
-                            '',
-                            '    // shuffle the first and second color blocks into two separate vectors.',
-                            '    const __m128i lo = _mm_castps_si128(_mm_shuffle_ps(_mm_castsi128_ps(line_0), _mm_castsi128_ps(line_1), _MM_SHUFFLE(2, 0, 2, 0)));',
-                            '    const __m128i hi = _mm_castps_si128(_mm_shuffle_ps(_mm_castsi128_ps(line_0), _mm_castsi128_ps(line_1), _MM_SHUFFLE(3, 1, 3, 1)));',
-                            '',
-                            '    // add them.',
-                            '    const __m128i merged = _mm_add_epi8(lo, hi);',
-                            '',
-                            '    _mm_store_si128(reinterpret_cast<__m128i *>(pTargetLine + x), merged);',
-                            '  }',
-                            '}',
-                            ''
-                        ].join('\n'),
-                        language: 'cpp',
-                        theme: 'vs-dark',
-                        automaticLayout: true,
-                        minimap: {
-                            enabled: false
-                        },
-                        padding: {
-                          top: "15pt"
-                        },
-                        wordWrap: 'on'
-                    });
-
-                    code_editor.getModel().onDidChangeContent(function(event) {
-                        content_changed();
-                    });
-                });
-            </script>
-            <div class="h_separator"></div>
-            <div id="disasm0" class="app_view disasm">
-                <div class="selector">
-                    <select id="compiler" onchange="javascript:content_changed();">
-                      <optgroup label="GCC x64">
-                        <option value="g++-x64-13">gcc 13</option>
-                      </optgroup>
-                      <optgroup label="Clang x64">
-                        <option value="clang++-x64-16" selected="selected">clang 16</option>
-                      </optgroup>
-                    </select>
-                    <select id="opt_lvl" onchange="javascript:content_changed();">
-                        <option value="O0">-O0</option>
-                        <option value="O1">-O1</option>
-                        <option value="O2">-O2</option>
-                        <option value="O3">-O3</option>
-                        <option value="O4">-O4</option>
-                        <option value="Of" selected="selected">-Ofast</option>
-                        <option value="Os">-Os</option>
-                        <option value="Oz">-Oz</option>
-                        <option value="Og">-Og</option>
-                    </select>
-                    <select id="march" onchange="javascript:content_changed();">
-                        <option value="none" selected="selected">none</option>
-                      <optgroup label="Intel">
-                        <option value="adl">Alderlake</option>
-                        <option value="brw">Broadwell</option>
-                        <option value="cnl">Cannonlake</option>
-                        <option value="ccl">Cascadelake</option>
-                        <option value="cpl">Cooperlake</option>
-                        <option value="elr">EmeraldRapids</option>
-                        <option value="gmt">Goldmont</option>
-                        <option value="gmp">GoldmontPlus</option>
-                        <option value="gdr">GrandRidge</option>
-                        <option value="gtr">GraniteRapids</option>
-                        <option value="hsw">Haswell</option>
-                        <option value="ilc">IcelakeClient</option>
-                        <option value="lcs">IcelakeServer</option>
-                        <option value="ivb">IvyBridge</option>
-                        <option value="mtl">Meteorlake</option>
-                        <option value="rtl">Raptorlake</option>
-                        <option value="rkl">Rocketlake</option>
-                        <option value="sdb">Sandybridge</option>
-                        <option value="spr">SapphireRapids</option>
-                        <option value="srf">Sierraforest</option>
-                        <option value="svm">Silvermont</option>
-                        <option value="slc">SkylakeClient</option>
-                        <option value="slx">SkylakeX</option>
-                        <option value="sls">SkylakeServer</option>
-                        <option value="tgl">Tigerlake</option>
-                        <option value="trm">Tremont</option>
-                      </optgroup>
-                      <optgroup label="AMD">
-                        <option value="zn1">Zen1</option>
-                        <option value="zn2">Zen2</option>
-                        <option value="zn3">Zen3</option>
-                        <option value="zn4">Zen4</option>
-                      </optgroup>
-                    </select>
-                    <i class="label">pseudo-decompile</i>
-                    <label class="switch">
-                      <input id="zydec" type="checkbox" checked="true" onchange="javascript:zydec_changed();">
-                      <span class="slider"></span>
-                    </label>
-                </div>
-                <div class="disasm_container">
-                    <div class="disasm" id="asm">
-                        Edit or Paste Code To Begin Analyzing.
-                    </div>
-                </div>
-                <div class="v_separator"></div>
-                <div class="stdout" id="stdout">
-                    Edit or Paste Code To Begin Analyzing.
-                </div>
-            </div>
-            <div class="h_separator"></div>
-            <div class="app_view view3">
-                <div class="selector">
-                    <div class="tab active">
-                        <b class="tab_descriptor">Execution Flow</b>
-                        <select id="mca_arch" onchange="javascript:mca_changed();">
-                          <optgroup label="Intel">
-                            <option value="adl">Alderlake</option>
-                            <option value="brw">Broadwell</option>
-                            <option value="cnl">Cannonlake</option>
-                            <option value="ccl">Cascadelake</option>
-                            <option value="cpl">Cooperlake</option>
-                            <option value="elr">EmeraldRapids</option>
-                            <option value="gmt">Goldmont</option>
-                            <option value="gmp">GoldmontPlus</option>
-                            <option value="gdr">GrandRidge</option>
-                            <option value="gtr">GraniteRapids</option>
-                            <option value="hsw">Haswell</option>
-                            <option value="ilc">IcelakeClient</option>
-                            <option value="lcs">IcelakeServer</option>
-                            <option value="ivb">IvyBridge</option>
-                            <option value="mtl">Meteorlake</option>
-                            <option value="rtl">Raptorlake</option>
-                            <option value="rkl">Rocketlake</option>
-                            <option value="sdb">Sandybridge</option>
-                            <option value="spr">SapphireRapids</option>
-                            <option value="srf">Sierraforest</option>
-                            <option value="svm">Silvermont</option>
-                            <option value="slc">SkylakeClient</option>
-                            <option value="slx">SkylakeX</option>
-                            <option value="sls">SkylakeServer</option>
-                            <option value="tgl">Tigerlake</option>
-                            <option value="trm">Tremont</option>
-                          </optgroup>
-                          <optgroup label="AMD">
-                            <option value="zn1">Zen1</option>
-                            <option value="zn2">Zen2</option>
-                            <option value="zn3">Zen3</option>
-                            <option value="zn4" selected="selected">Zen4</option>
-                          </optgroup>
-                        </select>
-                    </div>
-                    <div class="tab">
-                        <b class="tab_descriptor">Intel Instinsics Guide</b>
-                    </div>
-                </div>
-                <div class="view3_opt" id="execution_flow_container">
-                    <div id="analysis_selector" style="display: none;"></div>
-                    <div id="analysis" style="display: none;"></div>
-                    <table id="execution_flow" style="display: none;"></table>
-                </div>
-                <div class="view3_opt" id="documentation" style="display: none;">
-                    <input type="text" placeholder="Type anything to search..." id="documentation_search"></input>
-                </div>
-            </div>
+                  };
+                })();
+              }
+            }
+
+            display_disasm();
+
+            if (document.getElementById('zydec').checked)
+              load_zydec(0);
+
+          }, { 'opt': opt, 'march': march, 'src': code_editor.getValue() });
+        }
+      }
+
+      window.content_changed = function () {
+        document.getElementById('stdout').innerText = "Waiting for Compile...";
+        last_modification = Date.now();
+        setTimeout(suggest_compile, sleep_time);
+      }
+
+      window.zydec_changed = function () {
+        if (document.getElementById('zydec').checked)
+          try_display_zydec();
+        else
+          display_disasm();
+      }
+
+      window.mca_changed = function () {
+        if (last_execution_flow_loop_idx >= 0)
+          suggest_execution_flow(last_execution_flow_loop_idx);
+      }
+
+      require.config({ paths: { 'vs': 'monaco-editor/min/vs' } });
+      require(['vs/editor/editor.main'], function () {
+        code_editor = monaco.editor.create(document.getElementById('code_view'), {
+          value: [
+            '#include <stdlib.h>',
+            '#include <stdint.h>',
+            '',
+            '#if defined(_MSC_VER) && !defined(__llvm__)',
+            '#include <intrin.h>',
+            '#else',
+            '#include <x86intrin.h>',
+            '#endif',
+            '',
+            'void merge_lines(const uint32_t *pSourceLine, const uint32_t *pSourceLine2, const size_t length, uint32_t *pTargetLine)',
+            '{',
+            '  // what are we analzying today?',
+            '  const __m128i lower7bits = _mm_set1_epi8(0b1111111);',
+            '  const __m128i oneA = _mm_set1_epi64x(0x0000010001010001LL);',
+            '  const __m128i oneB = _mm_set1_epi64x(0x0101000100000100LL);',
+            '',
+            '  constexpr size_t colorsPerVector = sizeof(__m128i) / sizeof(uint32_t);',
+            '',
+            '  for (size_t x = 0; x < length; x += 2)',
+            '  {',
+            '    // load two vectors from both lines of the source.',
+            '    const __m128i line00r = _mm_loadu_si128(reinterpret_cast<const __m128i *>(pSourceLine + x * 2));',
+            '    const __m128i line01r = _mm_loadu_si128(reinterpret_cast<const __m128i *>(pSourceLine + x * 2 + colorsPerVector));',
+            '    const __m128i line10r = _mm_loadu_si128(reinterpret_cast<const __m128i *>(pSourceLine2 + x * 2));',
+            '    const __m128i line11r = _mm_loadu_si128(reinterpret_cast<const __m128i *>(pSourceLine2 + x * 2 + colorsPerVector));',
+            '',
+            '    // dither with one (saturate to not accidentally cause an overflow with 0xFF) and divide by two.',
+            '    const __m128i line00 = _mm_and_si128(lower7bits, _mm_srli_epi32(_mm_adds_epu8(line00r, oneA), 1));',
+            '    const __m128i line01 = _mm_and_si128(lower7bits, _mm_srli_epi32(_mm_adds_epu8(line01r, oneB), 1));',
+            '    const __m128i line10 = _mm_and_si128(lower7bits, _mm_srli_epi32(_mm_adds_epu8(line10r, oneB), 1));',
+            '    const __m128i line11 = _mm_and_si128(lower7bits, _mm_srli_epi32(_mm_adds_epu8(line11r, oneA), 1));',
+            '',
+            '    // add, dither again and divide by two.',
+            '    const __m128i line_0 = _mm_and_si128(lower7bits, _mm_srli_epi32(_mm_adds_epu8(_mm_add_epi8(line00, line10), oneA), 1));',
+            '    const __m128i line_1 = _mm_and_si128(lower7bits, _mm_srli_epi32(_mm_adds_epu8(_mm_add_epi8(line01, line11), oneB), 1));',
+            '',
+            '    // shuffle the first and second color blocks into two separate vectors.',
+            '    const __m128i lo = _mm_castps_si128(_mm_shuffle_ps(_mm_castsi128_ps(line_0), _mm_castsi128_ps(line_1), _MM_SHUFFLE(2, 0, 2, 0)));',
+            '    const __m128i hi = _mm_castps_si128(_mm_shuffle_ps(_mm_castsi128_ps(line_0), _mm_castsi128_ps(line_1), _MM_SHUFFLE(3, 1, 3, 1)));',
+            '',
+            '    // add them.',
+            '    const __m128i merged = _mm_add_epi8(lo, hi);',
+            '',
+            '    _mm_store_si128(reinterpret_cast<__m128i *>(pTargetLine + x), merged);',
+            '  }',
+            '}',
+            ''
+          ].join('\n'),
+          language: 'cpp',
+          theme: 'vs-dark',
+          automaticLayout: true,
+          minimap: {
+            enabled: false
+          },
+          padding: {
+            top: "15pt"
+          },
+          wordWrap: 'on'
+        });
+
+        code_editor.getModel().onDidChangeContent(function (event) {
+          content_changed();
+        });
+      });
+    </script>
+    <div class="h_separator"></div>
+    <div id="disasm0" class="app_view disasm">
+      <div class="selector">
+        <select id="compiler" onchange="javascript:content_changed();">
+          <optgroup label="GCC x64">
+            <option value="g++-x64-13">gcc 13</option>
+          </optgroup>
+          <optgroup label="Clang x64">
+            <option value="clang++-x64-16" selected="selected">clang 16</option>
+          </optgroup>
+        </select>
+        <select id="opt_lvl" onchange="javascript:content_changed();">
+          <option value="O0">-O0</option>
+          <option value="O1">-O1</option>
+          <option value="O2">-O2</option>
+          <option value="O3">-O3</option>
+          <option value="O4">-O4</option>
+          <option value="Of" selected="selected">-Ofast</option>
+          <option value="Os">-Os</option>
+          <option value="Oz">-Oz</option>
+          <option value="Og">-Og</option>
+        </select>
+        <select id="march" onchange="javascript:content_changed();">
+          <option value="none" selected="selected">none</option>
+          <optgroup label="Intel">
+            <option value="adl">Alderlake</option>
+            <option value="brw">Broadwell</option>
+            <option value="cnl">Cannonlake</option>
+            <option value="ccl">Cascadelake</option>
+            <option value="cpl">Cooperlake</option>
+            <option value="elr">EmeraldRapids</option>
+            <option value="gmt">Goldmont</option>
+            <option value="gmp">GoldmontPlus</option>
+            <option value="gdr">GrandRidge</option>
+            <option value="gtr">GraniteRapids</option>
+            <option value="hsw">Haswell</option>
+            <option value="ilc">IcelakeClient</option>
+            <option value="lcs">IcelakeServer</option>
+            <option value="ivb">IvyBridge</option>
+            <option value="mtl">Meteorlake</option>
+            <option value="rtl">Raptorlake</option>
+            <option value="rkl">Rocketlake</option>
+            <option value="sdb">Sandybridge</option>
+            <option value="spr">SapphireRapids</option>
+            <option value="srf">Sierraforest</option>
+            <option value="svm">Silvermont</option>
+            <option value="slc">SkylakeClient</option>
+            <option value="slx">SkylakeX</option>
+            <option value="sls">SkylakeServer</option>
+            <option value="tgl">Tigerlake</option>
+            <option value="trm">Tremont</option>
+          </optgroup>
+          <optgroup label="AMD">
+            <option value="zn1">Zen1</option>
+            <option value="zn2">Zen2</option>
+            <option value="zn3">Zen3</option>
+            <option value="zn4">Zen4</option>
+          </optgroup>
+        </select>
+        <i class="label">pseudo-decompile</i>
+        <label class="switch">
+          <input id="zydec" type="checkbox" checked="true" onchange="javascript:zydec_changed();">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="disasm_container">
+        <div class="disasm" id="asm">
+          Edit or Paste Code To Begin Analyzing.
         </div>
-    </body>
+      </div>
+      <div class="v_separator"></div>
+      <div class="stdout" id="stdout">
+        Edit or Paste Code To Begin Analyzing.
+      </div>
+    </div>
+    <div class="h_separator"></div>
+    <div class="app_view view3">
+      <div class="selector">
+        <div class="tab active">
+          <b class="tab_descriptor">Execution Flow</b>
+          <select id="mca_arch" onchange="javascript:mca_changed();">
+            <optgroup label="Intel">
+              <option value="adl">Alderlake</option>
+              <option value="brw">Broadwell</option>
+              <option value="cnl">Cannonlake</option>
+              <option value="ccl">Cascadelake</option>
+              <option value="cpl">Cooperlake</option>
+              <option value="elr">EmeraldRapids</option>
+              <option value="gmt">Goldmont</option>
+              <option value="gmp">GoldmontPlus</option>
+              <option value="gdr">GrandRidge</option>
+              <option value="gtr">GraniteRapids</option>
+              <option value="hsw">Haswell</option>
+              <option value="ilc">IcelakeClient</option>
+              <option value="lcs">IcelakeServer</option>
+              <option value="ivb">IvyBridge</option>
+              <option value="mtl">Meteorlake</option>
+              <option value="rtl">Raptorlake</option>
+              <option value="rkl">Rocketlake</option>
+              <option value="sdb">Sandybridge</option>
+              <option value="spr">SapphireRapids</option>
+              <option value="srf">Sierraforest</option>
+              <option value="svm">Silvermont</option>
+              <option value="slc">SkylakeClient</option>
+              <option value="slx">SkylakeX</option>
+              <option value="sls">SkylakeServer</option>
+              <option value="tgl">Tigerlake</option>
+              <option value="trm">Tremont</option>
+            </optgroup>
+            <optgroup label="AMD">
+              <option value="zn1">Zen1</option>
+              <option value="zn2">Zen2</option>
+              <option value="zn3">Zen3</option>
+              <option value="zn4" selected="selected">Zen4</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="tab">
+          <b class="tab_descriptor">Intel Instinsics Guide</b>
+        </div>
+      </div>
+      <div class="view3_opt" id="execution_flow_container">
+        <div id="analysis_selector" style="display: none;"></div>
+        <div id="analysis" style="display: none;"></div>
+        <table id="execution_flow" style="display: none;"></table>
+      </div>
+      <div class="view3_opt" id="documentation" style="display: none;">
+        <input type="text" placeholder="Type anything to search..." id="documentation_search"></input>
+      </div>
+    </div>
+  </div>
+</body>
+
 </html>
