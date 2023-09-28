@@ -20,6 +20,9 @@
                 const sleep_time = 3000;
                 const server_url = "http://localhost:61919/"
                 var last_dump;
+                var loops = [];
+                var view3State = "ef";
+                var last_mca;
 
                 function load_url(url, callback, obj) {
                   console.log('requesting "' + url + '" with ' + JSON.stringify(obj) + '.');
@@ -65,6 +68,91 @@
 
                 function bytesToBase64(bytes) {
                     return window.btoa(String.fromCharCode.apply(null, new Uint8Array(bytes)));
+                }
+
+                var last_execution_flow_loop_idx = -1;
+
+                function draw_execution_flow() {
+                    const e = last_mca;
+
+                    for (let i = 0; i < last_dump.length; i++)
+                    {
+                        let func = last_dump[i];
+                    
+                        for (let j = 0; j < func.length; j++)
+                            func[j].element.className = func[j].element.className.replaceAll(' analyzed', '');
+                    }
+                    
+                    var stats = document.getElementById('analysis');
+                    stats.style.display = 'inherit';
+                    stats.innerHTML = "";
+
+                    append_element(stats, 'h3', 'stats_headline', 'Across ' + e.stats.iterations + ' Iterations:');
+                    append_element(stats, 'p', 'stat', '~' + e.stats.cycles + ' Cycles / Iteration (dispatched -> retired)');
+                    append_element(stats, 'p', 'stat', '~' + e.stats.execution_cycles + ' Cycles / Iteration (issued -> executed)');
+
+                    append_element(stats, 'p', 'stat specific', 'Dispatched: ' + e.stats.dispatched + ' Cycles');
+                    append_element(stats, 'p', 'stat specific', 'Pending: ' + e.stats.pending + ' Cycles');
+                    append_element(stats, 'p', 'stat specific', 'Ready: ' + e.stats.ready + ' Cycles');
+                    append_element(stats, 'p', 'stat specific', 'Executing: ' + e.stats.executing + ' Cycles');
+                    append_element(stats, 'p', 'stat specific', 'Retiring: ' + e.stats.retiring + ' Cycles');
+
+                    var flow = document.getElementById('execution_flow');
+                    flow.style.display = 'inherit';
+                    flow.innerHTML = "";
+
+                    var headline_row = append_element(flow, "tr", "", "");
+                    var usage_row = append_element(flow, "tr", "", "");
+                    var flow_row = append_element(flow, "tr", "", "");
+
+                    for (let i = 0; i < e.ports.length; i++)
+                    {
+                        append_element(headline_row, "th", "mca", e.ports[i]);
+                        append_element(usage_row, "td", "mca_th_stats", (e.stats.ports[i] * 100.0).toFixed(0) + '%').style.setProperty('--usage', e.stats.ports[i]);
+
+                        append_element(flow_row, "td", "flow_lane", "");
+                    }
+
+                    
+                }
+
+                function suggest_execution_flow(loop_idx) {
+                    last_execution_flow_loop_idx = loop_idx;
+
+                    if (view3State != 'ef')
+                        return;
+
+                    let bytes = [];
+                    
+                    const start = loops[loop_idx].start;
+                    const end = loops[loop_idx].end;
+
+                    for (let i = 0; i < last_dump.length; i++)
+                    {
+                        let func = last_dump[i];
+                    
+                        for (let j = 0; j < func.length; j++)
+                        {
+                            let x = func[j];
+
+                            if (x.addr >= start && x.addr < end)
+                                bytes = bytes.concat(x.bytes);
+                        }
+                    }
+
+                    const base64 = bytesToBase64(bytes);
+                    const arch = document.getElementById("mca_arch").value;
+                    const request = { 'bytes': base64, 'addr': start, 'march': arch };
+
+                    (() => {
+                        let loop_index = loop_idx;
+
+                        load_url(server_url + 'execution_flow', (e) => {
+                            last_mca = e;
+
+                            draw_execution_flow();
+                        }, request);
+                    })();
                 }
 
                 function display_zydec() {
@@ -128,36 +216,52 @@
                     const base64 = bytesToBase64(bytes);
                     const request = { 'bytes': base64, 'addr': func[0].addr };
 
-                    load_url(server_url + 'zydec', (e) => {
-                        let func = last_dump[dump_index];
-                        let idx = 0;
-                        let data = e.zydec.split('\n');
+                    (() => {
+                        let dump_idx = dump_index;
 
-                        for (let i = 0; i < data.length; i++)
-                        {
-                            if (data[i] == '')
-                                continue;
+                        load_url(server_url + 'zydec', (e) => {
+                            let func = last_dump[dump_idx];
+                            let idx = 0;
+                            let data = e.zydec.split('\n');
 
-                            let sect = data[i].split('\t');
-                            let addr = parseInt(sect[0]);
-
-                            let n = func[idx];
-
-                            if (n.addr == addr)
+                            for (let i = 0; i < data.length; i++)
                             {
-                                idx++;
+                                if (data[i] == '')
+                                    continue;
 
-                                n.rawZydec = data[i];
-                                n.dec = sect[1];
-                                n.isa = sect[2];
+                                let sect = data[i].split('\t');
+                                let addr = parseInt(sect[0]);
+
+                                let n = func[idx];
+
+                                if (n.addr == addr)
+                                {
+                                    idx++;
+
+                                    n.rawZydec = data[i];
+                                    n.dec = sect[1];
+                                    n.isa = sect[2];
+                                }
                             }
-                        }
 
-                        if (last_dump.length > dump_index + 1)
-                            load_zydec(dump_index + 1);
-                        else
-                            display_zydec();
-                    }, request);
+                            if (last_dump.length > dump_idx + 1)
+                            {
+                                load_zydec(dump_idx + 1);
+                            }
+                            else
+                            {
+                                last_dump['zydec'] = true;
+                                display_zydec();
+                            }
+                        }, request);
+                    })();
+                }
+
+                function try_display_zydec() {
+                    if (last_dump['zydec'] == true)
+                        display_zydec();
+                    else
+                        load_zydec(0);
                 }
 
                 function display_disasm() {
@@ -197,6 +301,11 @@
                 function suggest_compile() {
                     if ((Date.now() - last_modification) >= sleep_time - 2) {
                         last_dump = null;
+                        loops = [];
+                        document.getElementById('analysis_selector').style.display = "hidden";
+                        document.getElementById('analysis').style.display = "hidden";
+                        document.getElementById('execution_flow').style.display = "hidden";
+                        last_execution_flow_loop_idx = -1;
                         last_modification = Date.now();
                         var compiler = document.getElementById("compiler").value;
                         var opt = document.getElementById("opt_lvl").value;
@@ -234,9 +343,10 @@
                                 }
                                 else
                                 {
-                                    let trimmed = x.trim();
-                                    let sect = x.split('\t');
-                                    let addr = sect[0].replaceAll(':', '').trim(' ');
+                                    const trimmed = x.trim();
+                                    const sect = x.split('\t');
+                                    const addrStr = sect[0].replaceAll(':', '').trim(' ');
+                                    const addr = parseInt(addrStr, 16);
                                     const hex = sect[1].trim(' ');
                                     const bytes = hexToBytes(hex);
                                     const _asm = sect[2].trim(' ').replaceAll(',', ", ").replaceAll('  ', ' ');
@@ -248,9 +358,78 @@
                                     var target;
 
                                     if (isJump)
+                                    {
                                         target = parseInt(beforeComment.split(' ')[0], 16);
 
-                                    last_sym.push({ 'raw': x, 'addrStr': addr, 'addr': parseInt(addr, 16), 'bytes': bytes, 'asm': _asm, 'mnemonic': mnemonic, 'params': beforeComment, 'comment': comment, 'isJump': isJump, 'target': target });
+                                        if (target < addr)
+                                            loops.push({'start': target, 'end': addr + bytes.length - 1});
+                                    }
+
+                                    last_sym.push({ 'raw': x, 'addrStr': addrStr, 'addr': addr, 'bytes': bytes, 'asm': _asm, 'mnemonic': mnemonic, 'params': beforeComment, 'comment': comment, 'isJump': isJump, 'target': target });
+                                }
+                            }
+
+                            var loop_selector = document.getElementById('analysis_selector');
+                            loop_selector.innerHTML = "Select Region to Analyze: ";
+
+                            if (loops.length == 1)
+                            {
+                                loop_selector.style.display = "none";
+                            
+                                suggest_execution_flow(0);
+                            }
+                            else
+                            {
+                                loop_selector.style.display = "inherit";
+                                
+                                for (let i = 0; i < loops.length; i++)
+                                {
+                                    let e = append_element(loop_selector, 'div', 'loop_selection', loops[i].start.toString(16) + " - " + loops[i].end.toString(16));
+
+                                    (function () {
+                                        let e_ = e;
+                                        let idx = i;
+
+                                        e_.onclick = () => {
+                                            suggest_execution_flow(idx);
+                                        };
+
+                                        e_.onmouseenter = () => {
+                                            const start = loops[idx].start;
+                                            const end = loops[idx].end;
+
+                                            for (let j = 0; j < last_dump.length; j++)
+                                            {
+                                                let func = last_dump[j];
+
+                                                for (let k = 0; k < func.length; k++)
+                                                {
+                                                    let x = func[k];
+
+                                                    if (x.addr >= start && x.addr < end)
+                                                        x.element.className += " hover";
+                                                }
+                                            }
+                                        };
+
+                                        e_.onmouseleave = () => {
+                                            const start = loops[idx].start;
+                                            const end = loops[idx].end;
+
+                                            for (let j = 0; j < last_dump.length; j++)
+                                            {
+                                                let func = last_dump[j];
+
+                                                for (let k = 0; k < func.length; k++)
+                                                {
+                                                    let x = func[k];
+
+                                                    if (x.addr >= start && x.addr < end)
+                                                        x.element.className = x.element.className.replaceAll(" hover", "");
+                                                }
+                                            }
+                                        };
+                                    }) ();
                                 }
                             }
 
@@ -271,9 +450,14 @@
 
                 window.zydec_changed = function() {
                     if (document.getElementById('zydec').checked)
-                        display_zydec();
+                        try_display_zydec();
                     else
                         display_disasm();
+                }
+
+                window.mca_changed = function () {
+                    if (last_execution_flow_loop_idx > 0)
+                        suggest_execution_flow(last_execution_flow_loop_idx);
                 }
 
                 require.config({ paths: { 'vs': 'monaco-editor/min/vs' }});
@@ -425,7 +609,7 @@
                 <div class="selector">
                     <div class="tab active">
                         <b class="tab_descriptor">Execution Flow</b>
-                        <select id="mca_arch" onchange="javascript:/*mca_changed();*/">
+                        <select id="mca_arch" onchange="javascript:mca_changed();">
                           <optgroup label="Intel">
                             <option value="adl">Alderlake</option>
                             <option value="brw">Broadwell</option>
@@ -467,9 +651,9 @@
                     </div>
                 </div>
                 <div class="view3_opt" id="execution_flow_container">
-                    <div id="analysis_selector"></div>
-                    <div id="analysis"></div>
-                    <div id="execution_flow"></div>
+                    <div id="analysis_selector" style="display: none;"></div>
+                    <div id="analysis" style="display: none;"></div>
+                    <table id="execution_flow" style="display: none;"></table>
                 </div>
                 <div class="view3_opt" id="documentation" style="display: none;">
                     <input type="text" placeholder="Type anything to search..." id="documentation_search"></input>

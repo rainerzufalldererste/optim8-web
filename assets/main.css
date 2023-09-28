@@ -250,6 +250,10 @@ html, body {
     text-rendering: optimizelegibility;
 }
 
+.disasm .function p.asm_line.hover {
+  background: #4ac4ff14;
+}
+
 .disasm .function p.asm_line ::-moz-selection, .disasm .function p.asm_line ::selection {
     background: #aaa5;
 }
@@ -460,5 +464,77 @@ i.isa.FMA, i.isa.FMA4, i.isa.AES, i.isa.AVXAES, i.isa.AVX_VNNI {
 .view3_opt {
     width: 100%;
     height: 100%;
-    overflow: auto;
+    overflow-y: auto;
+}
+
+#analysis_selector {
+  display: block;
+  margin: 10pt 10pt;
+  width: fit-content;
+  background: #333;
+  padding: 10pt 20pt;
+}
+
+#analysis_selector .loop_selection {
+  background: #555;
+  padding: 5pt 10pt;
+  font-family: 'Segoe UI', monospace;
+  border: 1pt solid #777;
+  color: #ccc;
+  font-weight: bold;
+  cursor: pointer;
+  width: fit-content;
+  display: inline-block;
+}
+
+#analysis_selector .loop_selection:hover {
+    background: #666;
+    color: #ddd;
+}
+
+#analysis {
+  font-family: 'Segoe UI', sans-serif;
+  padding: 10pt 25pt;
+  margin: 15pt 10pt;
+  color: #fff;
+  background: linear-gradient(30deg, #295671, #49b4c6);
+  border-radius: 10pt;
+  border: 1pt solid #69abbf;
+  box-shadow: 2pt 2pt 5pt #000000fc;
+}
+
+#analysis h3 {
+  margin-top: 0;
+  font-size: 95%;
+}
+
+#analysis .stat {
+  margin: 4pt 0;
+  font-family: 'Consolas', monospace;
+}
+
+#analysis .stat.specific {
+  margin: 2pt 2pt;
+  font-size: 85%;
+  opacity: 70%;
+  display: inline-block;
+  border-radius: 10pt;
+  background: #0f384d9e;
+  padding: 2.75pt 8pt;
+}
+
+.mca_th {
+  font-family: 'Segoe UI', sans-serif;
+  font-weight: bold;
+  font-size: 90%;
+  line-break: anywhere;
+  color: #fff;
+}
+
+.mca_th_stats {
+  font-style: normal;
+  font-size: 80%;
+  vertical-align: bottom;
+  text-align: center;
+  color: hsl(calc(var(--usage) * -150deg + 180deg), calc(var(--usage) * 60% + 20%), calc(var(--usage) * 20% + 40%));
 }
