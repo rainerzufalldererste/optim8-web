@@ -35,7 +35,7 @@ body {
 
 .app_view {
   min-width: 200pt;
-  width: 500pt;
+  width: 30%;
   height: 100%;
   display: inline-block;
   padding: 0;
@@ -53,7 +53,7 @@ body {
 }
 
 .app_view .selector {
-  height: 25pt;
+  min-height: 25pt;
   width: 100%;
   background: #2d2d2d;
   display: block;
@@ -87,6 +87,7 @@ body {
   background: #666;
   cursor: ew-resize;
   margin: 0;
+  user-select: none;
 }
 
 .v_separator {
@@ -96,6 +97,7 @@ body {
   background: #666;
   cursor: ns-resize;
   margin: 0;
+  user-select: none;
 }
 
 .tab {
@@ -160,10 +162,10 @@ body {
 .selector .switch .slider::before {
   position: absolute;
   content: "";
-  height: 15pt;
-  width: 15pt;
-  left: 2.5pt;
-  bottom: 2pt;
+  height: 12pt;
+  width: 12pt;
+  left: 5.5pt;
+  bottom: 1pt;
   background-color: #aaa;
   -webkit-transition: .4s;
   transition: .4s;
@@ -606,7 +608,8 @@ i.isa.AVX_VNNI {
   z-index: 10;
 }
 
-.asm_line.selected .addr .dependency.above::before, .asm_line.selected .addr .dependency.below::before {
+.asm_line.selected .addr .dependency.above::before,
+.asm_line.selected .addr .dependency.below::before {
   content: ' ';
   border: 2pt solid;
   border-right: none;
@@ -625,7 +628,8 @@ i.isa.AVX_VNNI {
   top: calc(var(--offset) * -16pt);
 }
 
-.asm_line.selected .addr .dependency.above::after, .asm_line.selected .addr .dependency.below::after {
+.asm_line.selected .addr .dependency.above::after,
+.asm_line.selected .addr .dependency.below::after {
   content: ' ';
   background: transparent;
   position: absolute;
@@ -646,15 +650,18 @@ i.isa.AVX_VNNI {
   top: calc(var(--offset) * -16pt - 3pt);
 }
 
-.asm_line.selected .addr .dependency.reg, .mca_pressure.reg {
+.asm_line.selected .addr .dependency.reg,
+.mca_pressure.reg {
   color: #b95d9c;
 }
 
-.asm_line.selected .addr .dependency.mem, .mca_pressure.mem {
+.asm_line.selected .addr .dependency.mem,
+.mca_pressure.mem {
   color: #5d85b9;
 }
 
-.asm_line.selected .addr .dependency.rsrc, .mca_pressure.rsrc {
+.asm_line.selected .addr .dependency.rsrc,
+.mca_pressure.rsrc {
   color: #815db9;
 }
 
@@ -708,18 +715,21 @@ i.isa.AVX_VNNI {
   display: block;
 }
 
-.mca_reg, .mca_port {
+.mca_reg,
+.mca_port {
   color: #ddd;
   font-style: normal;
   display: inline-block;
 }
 
-.mca_loop::before, .mca_loop_origin::before {
+.mca_loop::before,
+.mca_loop_origin::before {
   content: 'Loop ';
   font-size: 70%;
 }
 
-.mca_loop, .mca_loop_origin {
+.mca_loop,
+.mca_loop_origin {
   display: inline-block;
   color: #fff;
   background: #4924ff;

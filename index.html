@@ -15,7 +15,7 @@
   </div>
   <div id="app_container">
     <script src="monaco-editor/min/vs/loader.js"></script>
-    <div id="code_view" class="app_view"></div>
+    <div id="code_view" class="app_view" style="width: 40%"></div>
     <script type="module">
       var code_editor;
       var last_modification = Date.now();
@@ -78,6 +78,137 @@
         for (let i = 0; i < elements.length; i++)
           elements[i].parentElement.removeChild(elements[i]);
       }
+
+      function register_horizontal_splitter(splitterNode) {
+        var minWidth = 300;
+      
+        var leftElement = splitterNode.previousElementSibling;
+        var rightElement = splitterNode.nextElementSibling;
+
+        while (leftElement.nodeName == 'SCRIPT')
+          leftElement = leftElement.previousElementSibling;
+
+        while (rightElement.nodeName == 'SCRIPT')
+          rightElement = rightElement.nextElementSibling;
+
+        var lastX = 0;
+        var isDragging = false;
+      
+        splitterNode.addEventListener('mousedown', function (e) {
+          isDragging = true;
+          lastX = e.clientX;
+        });
+      
+        window.addEventListener('mousemove', function (e) {
+          if (!isDragging)
+            return;
+        
+          var deltaX = e.clientX - lastX;
+          lastX = e.clientX;
+        
+          var leftWidth = parseInt(getComputedStyle(leftElement, '').width);
+          var rightWidth = parseInt(getComputedStyle(rightElement, '').width);
+        
+          if (leftWidth + deltaX < minWidth || rightWidth - deltaX < minWidth)
+            return;
+        
+          leftElement.style.width = (leftWidth + deltaX) + 'px';
+          rightElement.style.width = (rightWidth - deltaX) + 'px';
+        });
+      
+        window.addEventListener('mouseup', function () {
+          isDragging = false;
+        });
+      }
+
+      function register_vertical_splitter(splitterNode) {
+        var minHeight = 50;
+      
+        var topElement = splitterNode.previousElementSibling;
+        var bottomElement = splitterNode.nextElementSibling;
+
+        while (topElement.nodeName == 'SCRIPT')
+          topElement = topElement.previousElementSibling;
+
+        while (bottomElement.nodeName == 'SCRIPT')
+          bottomElement = bottomElement.nextElementSibling;
+
+        var lastY = 0;
+        var isDragging = false;
+      
+        splitterNode.addEventListener('mousedown', function (e) {
+          isDragging = true;
+          lastY = e.clientY;
+        });
+      
+        window.addEventListener('mousemove', function (e) {
+          if (!isDragging)
+            return;
+        
+          var deltaY = e.clientY - lastY;
+          lastY = e.clientY;
+        
+          var leftHeight = parseInt(getComputedStyle(topElement, '').height);
+          var rightHeight = parseInt(getComputedStyle(bottomElement, '').height);
+        
+          if ((leftHeight + deltaY < minHeight) || (rightHeight - deltaY < minHeight))
+            return;
+        
+          topElement.style.height = (leftHeight + deltaY) + 'px';
+          bottomElement.style.height = (rightHeight - deltaY) + 'px';
+        });
+      
+        window.addEventListener('mouseup', function () {
+          isDragging = false;
+        });
+      }
+
+      function handle_resize() {
+        var disasm_container = document.getElementById('disasm_container');
+        var self_height = disasm_container.getBoundingClientRect().height;
+        var parent_bottom = disasm_container.parentElement.getBoundingClientRect().bottom;
+        var next_bottom = disasm_container.nextElementSibling.nextElementSibling.getBoundingClientRect().bottom;
+        var delta = parent_bottom - next_bottom;
+
+        if (self_height + delta > 200)
+          disasm_container.style.height = (self_height + delta) + 'px';
+
+        var view3 = document.getElementById('app_view_3');
+        var self_width = view3.getBoundingClientRect().width;
+        var self_right = view3.getBoundingClientRect().x + self_width;
+        var parent = view3.parentElement;
+        var parent_right = parent.getBoundingClientRect().right;
+        var delta = parent_right - self_right;
+
+        if (self_width + delta > 200)
+          view3.style.width = (self_width + delta) + 'px';
+        
+        if (view3.getBoundingClientRect().top >= parent.getBoundingClientRect().bottom) {
+          var prev = view3.previousElementSibling;
+          var prev_right = prev.getBoundingClientRect().x + prev.getBoundingClientRect().width;
+          var delta = parent_right - prev_right - 5;
+          
+          view3.style.width = delta + 'px';
+        }
+      }
+
+      window.addEventListener('load', function() {
+          var separators = document.getElementsByClassName('v_separator');
+          
+          for (var i = 0; i < separators.length; i++)
+            register_vertical_splitter(separators[i]);
+
+          separators = document.getElementsByClassName('h_separator');
+
+          for (var i = 0; i < separators.length; i++)
+            register_horizontal_splitter(separators[i]);
+
+          handle_resize();
+      });
+
+      window.addEventListener('resize', () => {
+        handle_resize();
+      });
 
       var last_execution_flow_loop_idx = -1;
 
@@ -206,16 +337,16 @@
               pressure.style.setProperty('--offset', Math.abs(p.origin_offset));
 
               var pr = append_element(info, 'i', 'mca_pressure ' + p.type, p.cycles + ' cycle(s) on ');
-              
+
               if (p.type == 'reg')
                 append_element(pr, 'b', 'mca_reg', p.name);
               else if (p.type == 'mem')
                 append_element(pr, 'i', 'mca_nondescript', 'memory');
               else if (p.type == 'rsrc')
-              append_element(pr, 'b', 'mca_port', p.port_name);
-            
-            append_element(pr, 'i', 'mca_nondescript', ' in ');
-            append_element(pr, 'b', 'mca_loop', p.it);
+                append_element(pr, 'b', 'mca_port', p.port_name);
+
+              append_element(pr, 'i', 'mca_nondescript', ' in ');
+              append_element(pr, 'b', 'mca_loop', p.it);
 
               if (p.it != p.origin_it)
                 append_element(pr, 'b', 'mca_loop_origin', p.origin_it);
@@ -661,7 +792,7 @@
       });
     </script>
     <div class="h_separator"></div>
-    <div id="disasm0" class="app_view disasm">
+    <div id="disasm0" class="app_view disasm" style="width: 30%">
       <div class="selector">
         <select id="compiler" onchange="javascript:content_changed();">
           <optgroup label="GCC x64">
@@ -730,7 +861,7 @@
           <span class="slider"></span>
         </label>
       </div>
-      <div class="disasm_container">
+      <div class="disasm_container" id="disasm_container">
         <div class="disasm" id="asm">
           Edit or Paste Code To Begin Analyzing.
         </div>
@@ -741,10 +872,10 @@
       </div>
     </div>
     <div class="h_separator"></div>
-    <div class="app_view view3">
+    <div class="app_view view3" id="app_view_3" style="width: 20%">
       <div class="selector">
         <div class="tab active">
-          <b class="tab_descriptor">Execution Flow</b>
+          <b class="tab_descriptor" name="Simulated Instruction Lane & Register Allocation powered by execution-flow & LLVM-MCA">Execution Flow</b>
           <select id="mca_arch" onchange="javascript:mca_changed();">
             <optgroup label="Intel">
               <option value="adl">Alderlake</option>
