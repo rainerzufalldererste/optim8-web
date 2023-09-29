@@ -330,13 +330,19 @@
             if (i['@attributes'].name.toLowerCase().includes(q))
               match_quality += 4;
 
-            if (i.instruction != undefined)
-              for (let l = 0; l < i.instruction.length; l++)
-                if (i.instruction[l]['@attributes'].name.toLowerCase().includes(q))
+            if (i.instruction != undefined) {
+              if (i.instruction.length == 0 || i.instruction.length == undefined) {
+                if (i.instruction['@attributes'].name.toLowerCase().includes(q))
                   match_quality += 1;
+              } else {
+                for (let l = 0; l < i.instruction.length; l++)
+                  if (i.instruction[l]['@attributes'].name.toLowerCase().includes(q))
+                    match_quality += 1;
+              }
+            }
             
             if (i.CPUID != undefined) {
-              if (i.CPUID.length == undefined) {
+              if (i.CPUID.length == undefined || i.CPUID.length == 0) {
                 if (i.CPUID['#text'].toLowerCase() === q)
                   match_quality += 10;
               } else {
