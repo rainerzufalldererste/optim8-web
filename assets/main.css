@@ -111,6 +111,7 @@ body {
   cursor: pointer;
   border: 1pt solid #555;
   border-bottom: none;
+  user-select: none;
 }
 
 .tab.active {
@@ -597,7 +598,7 @@ i.isa.AVX_VNNI {
   mix-blend-mode: screen;
   border: 1pt solid transparent;
   opacity: 30%;
-  width: 12pt;
+  width: 11pt;
   height: calc(15pt * var(--length));
   top: calc(var(--start) * 15pt);
 }
@@ -693,7 +694,7 @@ i.isa.AVX_VNNI {
   position: absolute;
   line-height: 100%;
   top: 10pt;
-  left: 200pt;
+  left: 150pt;
   width: 250pt;
   background: #151515ee;
   padding: 15pt 20pt;
@@ -745,3 +746,33 @@ i.isa.AVX_VNNI {
 .mca_loop_origin::before {
   content: '◀ Loop ';
 }
+
+.asm_spacing {
+  height: 300pt;
+  width: 10pt;
+}
+
+.disasm .function p.asm_line.matched .addr::before {
+  content: '';
+  position: absolute;
+  width: 2pt;
+  height: 16pt;
+  background: hsl(calc(var(--sweight) * -235deg + 230deg), calc(var(--sweight) * 65% + 5%), calc(var(--sweight) * 20% + 30%));
+  left: -17pt;
+  top: -5pt;
+}
+
+#documentation_search {
+  width: 80%;
+  margin: 15pt 5%;
+  font-size: 20pt;
+  background: #aaa2;
+  border: 3pt solid #aaa2;
+  padding: 5pt 10pt;
+  color: #ddd;
+  border-radius: 5pt;
+  display: block;
+  font-weight: normal;
+  font-family: 'Consolas', monospace;
+}
+

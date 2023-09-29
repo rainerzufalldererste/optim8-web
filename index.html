@@ -81,7 +81,7 @@
 
       function register_horizontal_splitter(splitterNode) {
         var minWidth = 300;
-      
+
         var leftElement = splitterNode.previousElementSibling;
         var rightElement = splitterNode.nextElementSibling;
 
@@ -93,29 +93,29 @@
 
         var lastX = 0;
         var isDragging = false;
-      
+
         splitterNode.addEventListener('mousedown', function (e) {
           isDragging = true;
           lastX = e.clientX;
         });
-      
+
         window.addEventListener('mousemove', function (e) {
           if (!isDragging)
             return;
-        
+
           var deltaX = e.clientX - lastX;
           lastX = e.clientX;
-        
+
           var leftWidth = parseInt(getComputedStyle(leftElement, '').width);
           var rightWidth = parseInt(getComputedStyle(rightElement, '').width);
-        
+
           if (leftWidth + deltaX < minWidth || rightWidth - deltaX < minWidth)
             return;
-        
+
           leftElement.style.width = (leftWidth + deltaX) + 'px';
           rightElement.style.width = (rightWidth - deltaX) + 'px';
         });
-      
+
         window.addEventListener('mouseup', function () {
           isDragging = false;
         });
@@ -123,7 +123,7 @@
 
       function register_vertical_splitter(splitterNode) {
         var minHeight = 50;
-      
+
         var topElement = splitterNode.previousElementSibling;
         var bottomElement = splitterNode.nextElementSibling;
 
@@ -135,29 +135,29 @@
 
         var lastY = 0;
         var isDragging = false;
-      
+
         splitterNode.addEventListener('mousedown', function (e) {
           isDragging = true;
           lastY = e.clientY;
         });
-      
+
         window.addEventListener('mousemove', function (e) {
           if (!isDragging)
             return;
-        
+
           var deltaY = e.clientY - lastY;
           lastY = e.clientY;
-        
-          var leftHeight = parseInt(getComputedStyle(topElement, '').height);
-          var rightHeight = parseInt(getComputedStyle(bottomElement, '').height);
-        
-          if ((leftHeight + deltaY < minHeight) || (rightHeight - deltaY < minHeight))
+
+          var topHeight = topElement.getBoundingClientRect().height;
+          var bottomHeight = bottomElement.getBoundingClientRect().height;
+
+          if ((topHeight + deltaY < minHeight) || (bottomHeight - deltaY < minHeight))
             return;
-        
-          topElement.style.height = (leftHeight + deltaY) + 'px';
-          bottomElement.style.height = (rightHeight - deltaY) + 'px';
+
+          topElement.style.height = (topHeight + deltaY) + 'px';
+          bottomElement.style.height = (bottomHeight - deltaY) + 'px';
         });
-      
+
         window.addEventListener('mouseup', function () {
           isDragging = false;
         });
@@ -182,28 +182,28 @@
 
         if (self_width + delta > 200)
           view3.style.width = (self_width + delta) + 'px';
-        
+
         if (view3.getBoundingClientRect().top >= parent.getBoundingClientRect().bottom) {
           var prev = view3.previousElementSibling;
           var prev_right = prev.getBoundingClientRect().x + prev.getBoundingClientRect().width;
           var delta = parent_right - prev_right - 5;
-          
+
           view3.style.width = delta + 'px';
         }
       }
 
-      window.addEventListener('load', function() {
-          var separators = document.getElementsByClassName('v_separator');
-          
-          for (var i = 0; i < separators.length; i++)
-            register_vertical_splitter(separators[i]);
+      window.addEventListener('load', function () {
+        var separators = document.getElementsByClassName('v_separator');
 
-          separators = document.getElementsByClassName('h_separator');
+        for (var i = 0; i < separators.length; i++)
+          register_vertical_splitter(separators[i]);
 
-          for (var i = 0; i < separators.length; i++)
-            register_horizontal_splitter(separators[i]);
+        separators = document.getElementsByClassName('h_separator');
 
-          handle_resize();
+        for (var i = 0; i < separators.length; i++)
+          register_horizontal_splitter(separators[i]);
+
+        handle_resize();
       });
 
       window.addEventListener('resize', () => {
@@ -570,6 +570,7 @@
           }
         }
 
+        append_element(asm, 'div', 'asm_spacing', '');
         offer_redraw_execution_flow();
       }
 
@@ -722,6 +723,34 @@
           suggest_execution_flow(last_execution_flow_loop_idx);
       }
 
+      window.switch_to_flow = function() {
+        var flow = document.getElementById('tab_flow');
+        var iig = document.getElementById('tab_iig');
+
+        flow.className += ' active';
+        iig.className = iig.className.replaceAll(' active', '');
+
+        flow = document.getElementById('execution_flow_container');
+        iig = document.getElementById('documentation');
+
+        flow.style.display = 'inherit';
+        iig.style.display = 'none';
+      }
+
+      window.switch_to_iig = function() {
+        var flow = document.getElementById('tab_flow');
+        var iig = document.getElementById('tab_iig');
+
+        iig.className += ' active';
+        flow.className = flow.className.replaceAll(' active', '');
+
+        flow = document.getElementById('execution_flow_container');
+        iig = document.getElementById('documentation');
+
+        iig.style.display = 'inherit';
+        flow.style.display = 'none';
+      }
+
       require.config({ paths: { 'vs': 'monaco-editor/min/vs' } });
       require(['vs/editor/editor.main'], function () {
         code_editor = monaco.editor.create(document.getElementById('code_view'), {
@@ -792,7 +821,7 @@
       });
     </script>
     <div class="h_separator"></div>
-    <div id="disasm0" class="app_view disasm" style="width: 30%">
+    <div id="disasm0" class="app_view disasm" style="width: 35%">
       <div class="selector">
         <select id="compiler" onchange="javascript:content_changed();">
           <optgroup label="GCC x64">
@@ -874,8 +903,10 @@
     <div class="h_separator"></div>
     <div class="app_view view3" id="app_view_3" style="width: 20%">
       <div class="selector">
-        <div class="tab active">
-          <b class="tab_descriptor" name="Simulated Instruction Lane & Register Allocation powered by execution-flow & LLVM-MCA">Execution Flow</b>
+        <div class="tab active" id="tab_flow" onclick="javascript:switch_to_flow()">
+          <b class="tab_descriptor"
+            name="Simulated Instruction Lane & Register Allocation powered by execution-flow & LLVM-MCA">Execution
+            Flow</b>
           <select id="mca_arch" onchange="javascript:mca_changed();">
             <optgroup label="Intel">
               <option value="adl">Alderlake</option>
@@ -913,8 +944,8 @@
             </optgroup>
           </select>
         </div>
-        <div class="tab">
-          <b class="tab_descriptor">Intel Instinsics Guide</b>
+        <div class="tab" id="tab_iig">
+          <b class="tab_descriptor" onclick="javascript:switch_to_iig()">Intel Instinsics Guide</b>
         </div>
       </div>
       <div class="view3_opt" id="execution_flow_container">
