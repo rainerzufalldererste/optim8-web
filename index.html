@@ -29,20 +29,38 @@
       function load_url(url, callback, obj) {
         console.log('requesting "' + url + '" with ' + JSON.stringify(obj) + '.');
         var xmlhttp;
-        if (window.XMLHttpRequest) { // code for IE7+, Firefox, Chrome, Opera, Safari
+
+        if (window.XMLHttpRequest)
           xmlhttp = new XMLHttpRequest();
-        }
-        else { // code for IE6, IE5
+        else
           xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
-        }
+        
         xmlhttp.onreadystatechange = function () {
-          if (xmlhttp.readyState == 4 && xmlhttp.status >= 200 && xmlhttp.status < 300) {
+          if (xmlhttp.readyState == 4 && xmlhttp.status >= 200 && xmlhttp.status < 300)
             callback(JSON.parse(xmlhttp.responseText));
-          }
         }
+
         xmlhttp.open("POST", url, true);
         xmlhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
         xmlhttp.send(JSON.stringify(obj));
+      }
+
+      function load_url_raw(url, callback) {
+        console.log('requesting "' + url + '".');
+        var xmlhttp;
+        
+        if (window.XMLHttpRequest)
+          xmlhttp = new XMLHttpRequest();
+        else
+          xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+        
+        xmlhttp.onreadystatechange = function () {
+          if (xmlhttp.readyState == 4 && xmlhttp.status >= 200 && xmlhttp.status < 300)
+            callback(xmlhttp.responseText);
+        }
+
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send();
       }
 
       function append_element(parent, type, className, innerText) {
@@ -209,6 +227,218 @@
       window.addEventListener('resize', () => {
         handle_resize();
       });
+
+      function loadScript(url, callback) {
+        var script = document.createElement("script");
+        script.type = "text/javascript";
+      
+        if (script.readyState) {
+          script.onreadystatechange = function () {
+            if (script.readyState === "loaded" || script.readyState === "complete") {
+              script.onreadystatechange = null;
+              callback();
+            }
+          };
+        } else {
+          script.onload = function () {
+            callback();
+          };
+        }
+      
+        script.src = url;
+        document.getElementsByTagName("head")[0].appendChild(script);
+      }
+
+      function xmlToJson(xml) {
+      	var obj = [];
+
+      	if (xml.nodeType == 1) {
+      		if (xml.attributes.length > 0) {
+      		obj["@attributes"] = {};
+      			for (var j = 0; j < xml.attributes.length; j++) {
+      				var attribute = xml.attributes.item(j);
+      				obj["@attributes"][attribute.nodeName] = attribute.nodeValue;
+      			}
+      		}
+      	} else if (xml.nodeType == 3) {
+      		obj = xml.nodeValue;
+      	}
+      
+      	if (xml.hasChildNodes()) {
+      		for(var i = 0; i < xml.childNodes.length; i++) {
+      			var item = xml.childNodes.item(i);
+      			var nodeName = item.nodeName;
+      			if (typeof(obj[nodeName]) == "undefined") {
+      				obj[nodeName] = xmlToJson(item);
+      			} else {
+      				if (typeof(obj[nodeName].push) == "undefined") {
+      					var old = obj[nodeName];
+      					obj[nodeName] = [];
+      					obj[nodeName].push(old);
+      				}
+      				obj[nodeName].push(xmlToJson(item));
+      			}
+      		}
+      	}
+      	return obj;
+      };
+
+      var iig_loaded = false;
+      var iig_loading = false;
+      var iig;
+      var iig_last_search = "";
+
+      window.search_iig = function (query) {
+        iig_last_search = query;
+        
+        if (!iig_loaded && !iig_loading) {
+          iig_loading = true;
+          loadScript('/assets/data.js', () => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(data_js, "application/xml");
+
+            iig = xmlToJson(doc);
+            iig_loaded = true;
+
+            search_iig(iig_last_search);
+          });
+        }
+
+        if (!iig_loaded)
+          return;
+
+        var results = document.getElementById('iig_results');
+        results.innerHTML = '';
+
+        var qs = query.split(' ');
+        var matches = [];
+
+        for (let j = 0; j < iig.intrinsics_list.intrinsic.length; j++) {
+          let i = iig.intrinsics_list.intrinsic[j];
+
+          var match_quality = 0;
+
+          for (let k = 0; k < qs.length; k++) {
+            let q = qs[k].toLowerCase().trim();
+
+            if (q.length == 0)
+              continue;
+
+            if (i.description['#text'].toLowerCase().includes(q))
+              match_quality += 1;
+
+            if (i['@attributes'].name.toLowerCase().includes(q))
+              match_quality += 4;
+
+            if (i.instruction != undefined)
+              for (let l = 0; l < i.instruction.length; l++)
+                if (i.instruction[l]['@attributes'].name.toLowerCase().includes(q))
+                  match_quality += 1;
+            
+            if (i.CPUID != undefined) {
+              if (i.CPUID.length == undefined) {
+                if (i.CPUID['#text'].toLowerCase() === q)
+                  match_quality += 10;
+              } else {
+                for (let l = 0; l < i.CPUID.length; l++)
+                  if (i.CPUID[l]['#text'].toLowerCase() === q)
+                    match_quality += 10;
+              }
+            }
+            else if (i['@attributes'].tech.toLowerCase() === q) {
+              match_quality += 10;
+            }
+          }
+
+          if (match_quality > 0) {
+            let instructions = [];
+            let params = [];
+            let op = "";
+            let tech = i['@attributes'].tech;
+
+            if (i.CPUID != undefined) {
+              if (i.CPUID.length == undefined || i.CPUID.length == 0) {
+                tech = i.CPUID['#text'];
+              } else {
+                for (let l = 0; l < i.CPUID.length; l++) {
+                  if (l == 0)
+                    tech = '';
+                  else
+                    tech += ' / ';
+
+                  tech += i.CPUID[l]['#text'];
+                }
+              }
+            }
+
+            if (i.operation != undefined)
+              op = i.operation['#text'].trim().trim('\n');
+
+            if (i.parameter != undefined) {
+              if (i.parameter.length != undefined && i.parameter.length != 0) {
+                for (let l = 0; l < i.parameter.length; l++)
+                   params.push({ 'type': i.parameter[l]['@attributes'].type, 'name': i.parameter[l]['@attributes'].varname });
+              } else {
+                params.push({ 'type': i.parameter['@attributes'].type, 'name': i.parameter['@attributes'].varname });
+              }
+            }
+
+            if (i.instruction != undefined) {
+              if (i.instruction.length != undefined && i.instruction.length != 0) {
+                for (let l = 0; l < i.instruction.length; l++)
+                  instructions.push(i.instruction[l]['@attributes'].name + ' ' + i.instruction[l]['@attributes'].form);
+              } else {
+                  instructions.push(i.instruction['@attributes'].name + ' ' + i.instruction['@attributes'].form);
+              }
+            }
+
+            matches.push({ 'quality': match_quality, 'ret': i.return['@attributes'].type, 'intrin': i['@attributes'].name, 'params': params, 'instructions': instructions, 'desc': i.description['#text'], 'tech': tech, 'op': op });
+          }
+        }
+
+        matches.sort((a, b) => (a.quality < b.quality) ? 1 : -1);
+
+        for (let j = 0; j < matches.length && j < 100; j++) {
+          let i = matches[j];
+
+          var container = append_element(results, 'div', 'iig_result_container', '');
+          var header = append_element(container, 'div', 'iig_header', '');
+          var body = append_element(container, 'div', 'iig_body', '');
+
+          header.style.setProperty('--relevance', i.quality);
+
+          append_element(header, 'b', 'iig_type', i.ret);
+          append_element(header, 'b', 'iig_name', i.intrin);
+          append_element(header, 'i', 'iig_misc', '(');
+
+          (() => {
+            var c = container;
+            header.onclick = () => {
+              if (c.className.includes(' selected'))
+                c.className = c.className.replaceAll(' selected', '');
+              else
+                c.className += ' selected';
+            };
+          })();
+
+          for (let k = 0; k < i.params.length; k++) {
+            if (k > 0)
+              append_element(header, 'i', 'iig_misc', ', ');
+
+            append_element(header, 'b', 'iig_type', i.params[k].type);
+            append_element(header, 'b', 'iig_name param', i.params[k].name);
+          }
+
+          append_element(header, 'i', 'iig_misc', ')');
+          append_element(header, 'b', 'iig_tech ' + i.tech.replaceAll(' / ', ' '), i.tech);
+          
+          append_element(body, 'div', 'iig_desc', i.desc)
+          append_element(body, 'div', 'iig_op', i.op)
+          
+          for (let k = 0; k < i.instructions.length; k++)
+            append_element(body, 'div', 'iig_instruction', i.instructions[k]);
+        }
+      }
 
       var last_execution_flow_loop_idx = -1;
 
@@ -735,6 +965,9 @@
 
         flow.style.display = 'inherit';
         iig.style.display = 'none';
+        
+        view3State = 'ef';
+        offer_redraw_execution_flow();
       }
 
       window.switch_to_iig = function() {
@@ -749,6 +982,8 @@
 
         iig.style.display = 'inherit';
         flow.style.display = 'none';
+
+        view3State = 'iig';
       }
 
       require.config({ paths: { 'vs': 'monaco-editor/min/vs' } });
@@ -944,8 +1179,8 @@
             </optgroup>
           </select>
         </div>
-        <div class="tab" id="tab_iig">
-          <b class="tab_descriptor" onclick="javascript:switch_to_iig()">Intel Instinsics Guide</b>
+        <div class="tab" id="tab_iig" onclick="javascript:switch_to_iig()">
+          <b class="tab_descriptor">Intel Instinsics Guide</b>
         </div>
       </div>
       <div class="view3_opt" id="execution_flow_container">
@@ -954,7 +1189,9 @@
         <table id="execution_flow" style="display: none;"></table>
       </div>
       <div class="view3_opt" id="documentation" style="display: none;">
-        <input type="text" placeholder="Type anything to search..." id="documentation_search"></input>
+        <input type="text" placeholder="Type anything to search..." id="documentation_search" oninput="javascript:search_iig(document.getElementById('documentation_search').value)"></input>
+        <div class="iig_disclaimer">The Intel Intrinsics Guide is Courtesy of & Copyright Intel Corporation. All trademarks belong to their respective owners.</div>
+        <div id="iig_results"></div>
       </div>
     </div>
   </div>

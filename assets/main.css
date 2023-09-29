@@ -335,7 +335,8 @@ body {
   margin-left: auto;
 }
 
-p.asm_line .isa {
+p.asm_line .isa,
+.iig_tech {
   user-select: none;
   color: #7f7f7f;
   font-style: normal;
@@ -348,10 +349,6 @@ p.asm_line .isa {
   font-family: 'Segoe UI', sans-serif;
   border: 1pt solid;
   float: right;
-}
-
-i.isa.AVX {
-  color: #5f61bb;
 }
 
 p.asm_line .dec {
@@ -390,32 +387,39 @@ p.asm_line .decbasic {
 i.isa.SSE,
 i.isa.SSE2,
 i.isa.SSE2MMX,
-i.isa.SSE_PREFETCH {
+i.isa.SSE_PREFETCH,
+.iig_tech.SSE,
+.iig_tech.SSE2 {
   color: #71969d;
 }
 
 i.isa.SSE3,
-i.isa.SSE3X87 {
+i.isa.SSE3X87,
+.iig_tech.SSE3 {
   color: #55929d;
 }
 
 i.isa.SSSE3,
-i.isa.SSSE3MMX {
+i.isa.SSSE3MMX,
+.iig_tech.SSSE3 {
   color: #5fa5bb;
 }
 
 i.isa.SSE4,
 i.isa.SSE41,
-i.isa.SSE42 {
+i.isa.SSE42,
+.iig_tech.SSE4 {
   color: #5f87bb;
 }
 
-i.isa.AVX {
+i.isa.AVX,
+.iig_tech.AVX {
   color: #5f61bb;
 }
 
 i.isa.AVX2,
-i.isa.AVX2GATHER {
+i.isa.AVX2GATHER,
+.iig_tech.AVX2 {
   color: #875fbb;
 }
 
@@ -484,7 +488,25 @@ i.isa.AVX512_VPOPCNTDQ_128,
 i.isa.AVX512_VPOPCNTDQ_256,
 i.isa.AVX512_VPOPCNTDQ_512,
 i.isa.AVX512EVEX,
-i.isa.AVX512VEX {
+i.isa.AVX512VEX,
+.iig_tech.AVX-512F,
+.iig_tech.AVX-512BW,
+.iig_tech.AVX-512CD,
+.iig_tech.AVX-512DQ,
+.iig_tech.AVX-512ER,
+.iig_tech.AVX-512IFMA52,
+.iig_tech.AVX-512PF,
+.iig_tech.AVX-512VL,
+.iig_tech.AVX-512VPOPCNTDQ,
+.iig_tech.AVX-512_4FMAPS,
+.iig_tech.AVX-512_4VNNIW,
+.iig_tech.AVX-512_BF16,
+.iig_tech.AVX-512_BITALG,
+.iig_tech.AVX-512_VBMI,
+.iig_tech.AVX-512_VBMI2,
+.iig_tech.AVX-512_VNNI,
+.iig_tech.AVX-512_VP2INTERSECT,
+.iig_tech.AVX-512_FP16 {
   color: #bb5479;
 }
 
@@ -492,7 +514,9 @@ i.isa.FMA,
 i.isa.FMA4,
 i.isa.AES,
 i.isa.AVXAES,
-i.isa.AVX_VNNI {
+i.isa.AVX_VNNI,
+.iig_tech.AES,
+.iig_tech.FMA {
   color: #bb7b54;
 }
 
@@ -776,3 +800,72 @@ i.isa.AVX_VNNI {
   font-family: 'Consolas', monospace;
 }
 
+.iig_disclaimer {
+  margin: 2pt;
+  font-size: 80%;
+  position: absolute;
+  bottom: 0;
+  background: #6a6a6ae8;
+  padding: 2pt 6pt;
+  color: #fff;
+}
+
+.iig_result_container {
+  margin: 5pt 5pt 15pt 5pt;
+  color: #999;
+  border-bottom: solid 2pt #555;
+  padding-bottom: 5pt;
+}
+
+.iig_type {
+  font-weight: normal;
+  color: #5397cf;
+  display: inline-block;
+  margin-right: 0.5em;
+}
+
+.iig_name {
+  color: #d4d4d4;
+  font-weight: normal;
+}
+
+.iig_misc {
+  font-style: normal;
+  color: #888;
+}
+
+.iig_desc {
+  margin: 10pt 5pt;
+  background: #333;
+  padding: 2pt 5pt;
+}
+
+.iig_op {
+  font-style: normal;
+  font-size: 82.5%;
+  margin: 10pt 5pt;
+  color: #808080;
+  padding: 2pt 5pt;
+  line-height: 140%;
+}
+
+.iig_instruction {
+  margin: 5pt 20pt;
+}
+
+.iig_header {
+  cursor: pointer;
+}
+
+.iig_header:hover {
+  background: #fff1;
+}
+
+.iig_body {
+  margin-bottom: 25pt;
+  display: none;
+}
+
+.iig_result_container.selected .iig_body {
+  display: block;
+}
