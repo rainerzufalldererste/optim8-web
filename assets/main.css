@@ -258,8 +258,8 @@ body {
   cursor: default;
 }
 
-.disasm .function .asm_line.matched {
-  user-select: none;
+.disasm .function p.asm_line.matched ::selection, .disasm .function p.asm_line.matched ::selection {
+  background: #86868654;
 }
 
 .disasm .function p.asm_line.hover {
@@ -871,4 +871,81 @@ i.isa.AVX_VNNI,
 
 .iig_result_container.selected .iig_body {
   display: block;
+}
+
+div.error {
+  position: absolute;
+  top: 75pt;
+  height: fit-content;
+  background: #d9324a;
+  box-shadow: 8pt 8pt #822230;
+  margin-left: 50pt;
+  animation-name: error-dance;
+  animation-duration: 1500ms;
+  animation-iteration-count: 1;
+  animation-timing-function: ease-out;
+}
+
+div.error::before {
+  content: '(╯°□°）╯';
+  color: #fff;
+  font-size: 400%;
+  font-family: Tahoma, sans-serif;
+  margin: 20pt 5pt 25pt 20pt;
+  display: inline-block;
+}
+
+div.error::after {
+  content: 'Oh no! Something went wrong...';
+  display: block;
+  color: #fff;
+  margin: 5pt 10pt 20pt 10pt;
+  width: 190pt;
+}
+
+div.error.disasm::after {
+  content: 'Oh no! Something didn\'t quite hit the mark...';
+}
+
+div.error.zydec::after {
+  content: 'Oh no! The Pseudo-Decompiler is having a bad day...';
+}
+
+div.error.exec_flow::after {
+  content: 'Oh no! Execution-Flow really didn\'t like that...';
+}
+
+div.spinner {
+  position: absolute;
+  top: 100pt;
+  width: 80pt !important;
+  height: 80pt !important;
+  margin-left: 125pt;
+  background: transparent;
+  background-image: url('/assets/favicon.png');
+  background-repeat: no-repeat;
+  background-size: contain;
+  animation-name: spin;
+  animation-duration: 1500ms;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+  display: block;
+  padding: 0 !important;
+}
+
+@keyframes spin {
+  from {
+      transform:rotate(0deg);
+  }
+  to {
+      transform:rotate(360deg);
+  }
+}
+
+@keyframes error-dance {
+  0% { transform: translate(0, -2pt) rotate(0deg); opacity: 0; }
+  33% { opacity: 0; transform: translate(0, -2pt) rotate(0deg); opacity: 0; }
+  50% { transform: translate(5pt, 5pt) rotate(5deg); opacity: 1; }
+  66% { transform: translate(-5pt, 2pt) rotate(-5deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
 }

@@ -26,8 +26,7 @@
       var view3State = "ef";
       var last_mca;
 
-      function load_url(url, callback, obj) {
-        console.log('requesting "' + url + '" with ' + JSON.stringify(obj) + '.');
+      function load_url(url, callback, obj, failure_callback) {
         var xmlhttp;
 
         if (window.XMLHttpRequest)
@@ -36,17 +35,38 @@
           xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
         
         xmlhttp.onreadystatechange = function () {
+          let obj;
+          
+          try {
+            obj = JSON.parse(xmlhttp.responseText)
+          } catch (e) {
+            failure_callback();
+          }
+
           if (xmlhttp.readyState == 4 && xmlhttp.status >= 200 && xmlhttp.status < 300)
-            callback(JSON.parse(xmlhttp.responseText));
+          {
+            try {
+              callback(obj);
+            } catch (e) {
+              failure_callback();
+            }
+          }
+          else
+          {
+            failure_callback();
+          }
         }
+        
+        xmlhttp.ontimeout = (e) => {
+            failure_callback();
+        };
 
         xmlhttp.open("POST", url, true);
         xmlhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
         xmlhttp.send(JSON.stringify(obj));
       }
 
-      function load_url_raw(url, callback) {
-        console.log('requesting "' + url + '".');
+      function load_url_raw(url, callback, failure_callback) {
         var xmlhttp;
         
         if (window.XMLHttpRequest)
@@ -55,9 +75,20 @@
           xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
         
         xmlhttp.onreadystatechange = function () {
-          if (xmlhttp.readyState == 4 && xmlhttp.status >= 200 && xmlhttp.status < 300)
-            callback(xmlhttp.responseText);
+          if (xmlhttp.readyState == 4 && xmlhttp.status >= 200 && xmlhttp.status < 300) {
+            try {
+              callback(xmlhttp.responseText);
+            } catch (e) {
+              failure_callback();
+            }
+          } else {
+            failure_callback();
+          }
         }
+        
+        xmlhttp.ontimeout = (e) => {
+            failure_callback();
+        };
 
         xmlhttp.open("GET", url, true);
         xmlhttp.send();
@@ -222,6 +253,30 @@
           register_horizontal_splitter(separators[i]);
 
         handle_resize();
+
+        var val = localStorage.getItem('code');
+        if (val != null && val != undefined)
+          code_editor.setValue(val) ;
+      
+        val = localStorage.getItem('compiler');
+        if (val != null && val != undefined)
+          document.getElementById("compiler").value = val;
+        
+        val = localStorage.getItem('compiler_opt');
+        if (val != null && val != undefined)
+          document.getElementById("opt_lvl").value = val;
+        
+        val = localStorage.getItem('compiler_march');
+        if (val != null && val != undefined)
+          document.getElementById("march").value = val;
+        
+        val = localStorage.getItem('zydec_enabled');
+        if (val != null && val != undefined)
+          document.getElementById("zydec").checked = val;
+        
+        val = localStorage.getItem('execution_flow_march');
+        if (val != null && val != undefined)
+          document.getElementById("mca_arch").value = val;
       });
 
       window.addEventListener('resize', () => {
@@ -462,7 +517,7 @@
           let func = last_dump[i];
 
           for (let j = 0; j < func.length; j++) {
-            func[j].element.className = func[j].element.className.replaceAll(' analyzed', '');
+            func[j].element.className = func[j].element.className.replaceAll(' matched', '');
             removeChildNodesByClass(func[j].element, 'dependency');
           }
         }
@@ -659,6 +714,15 @@
         const arch = document.getElementById("mca_arch").value;
         const request = { 'bytes': base64, 'addr': start, 'march': arch };
 
+        let stats = document.getElementById('analysis');
+        stats.style.display = 'none';
+
+        let flow = document.getElementById('execution_flow');
+        flow.style.display = 'inherit';
+        flow.innerHTML = "";
+
+        append_element(flow, 'div', 'spinner', '');
+
         (() => {
           let loop_index = loop_idx;
 
@@ -666,11 +730,36 @@
             last_mca = e;
 
             draw_execution_flow();
-          }, request);
+          }, request, () => {
+            let stats = document.getElementById('analysis');
+            stats.style.display = 'none';
+
+            let flow = document.getElementById('execution_flow');
+            flow.style.display = 'inherit';
+            flow.innerHTML = "";
+
+            append_element(flow, 'div', 'error exec_flow', '');
+          });
         })();
       }
 
       function display_zydec() {
+        let zydec_spinner = document.getElementById('zydec_spinner');
+        if (zydec_spinner != null && zydec_spinner != undefined)
+          zydec_spinner.parentElement.removeChild(zydec_spinner);
+
+        let zydec_error = document.getElementById('zydec_error');
+        if (zydec_error != null && zydec_error != undefined)
+          zydec_error.parentElement.removeChild(zydec_error);
+
+        let disasm_spinner = document.getElementById('disasm_spinner');
+        if (disasm_spinner != null && disasm_spinner != undefined)
+          disasm_spinner.parentElement.removeChild(disasm_spinner);
+
+        let disasm_error = document.getElementById('disasm_error');
+        if (disasm_error != null && disasm_error != undefined)
+          disasm_error.parentElement.removeChild(disasm_error);
+
         for (let i = 0; i < last_dump.length; i++) {
           let sym = last_dump[i];
 
@@ -722,6 +811,8 @@
       }
 
       function load_zydec(dump_index) {
+        append_element(document.getElementById('asm'), 'div', 'spinner zydec', '').id = 'zydec_spinner';
+
         let bytes = [];
         let func = last_dump[dump_index];
 
@@ -764,7 +855,23 @@
               last_dump['zydec'] = true;
               display_zydec();
             }
-          }, request);
+          }, request, () => {
+            let zydec_spinner = document.getElementById('zydec_spinner');
+            if (zydec_spinner != null && zydec_spinner != undefined)
+              zydec_spinner.parentElement.removeChild(zydec_spinner);
+
+            let disasm_spinner = document.getElementById('disasm_spinner');
+            if (disasm_spinner != null && disasm_spinner != undefined)
+              disasm_spinner.parentElement.removeChild(disasm_spinner);
+
+            let disasm_error = document.getElementById('disasm_error');
+            if (disasm_error != null && disasm_error != undefined)
+              disasm_error.parentElement.removeChild(disasm_error);
+
+            let zydec_error = document.getElementById('zydec_error');
+            if (zydec_error == null || zydec_error == undefined)
+              append_element(document.getElementById('asm'), 'div', 'error zydec', '').id = 'zydec_error';
+          });
         })();
       }
 
@@ -776,6 +883,22 @@
       }
 
       function display_disasm() {
+        let zydec_spinner = document.getElementById('zydec_spinner');
+        if (zydec_spinner != null && zydec_spinner != undefined)
+          zydec_spinner.parentElement.removeChild(zydec_spinner);
+
+        let zydec_error = document.getElementById('zydec_error');
+        if (zydec_error != null && zydec_error != undefined)
+          zydec_error.parentElement.removeChild(zydec_error);
+
+        let disasm_spinner = document.getElementById('disasm_spinner');
+        if (disasm_spinner != null && disasm_spinner != undefined)
+          disasm_spinner.parentElement.removeChild(disasm_spinner);
+
+        let disasm_error = document.getElementById('disasm_error');
+        if (disasm_error != null && disasm_error != undefined)
+          disasm_error.parentElement.removeChild(disasm_error);
+
         var asm = document.getElementById('asm');
         asm.innerHTML = "";
 
@@ -814,14 +937,18 @@
         if ((Date.now() - last_modification) >= sleep_time - 2) {
           last_dump = null;
           loops = [];
+
           document.getElementById('analysis_selector').style.display = "hidden";
           document.getElementById('analysis').style.display = "hidden";
           document.getElementById('execution_flow').style.display = "hidden";
+
           last_execution_flow_loop_idx = -1;
           last_modification = Date.now();
+
           var compiler = document.getElementById("compiler").value;
           var opt = document.getElementById("opt_lvl").value;
           var march = document.getElementById("march").value;
+
           load_url(server_url + compiler, (e) => {
             var compiler_out = e['compiler'];
             var objdump_out = e['objdump'];
@@ -937,7 +1064,23 @@
             if (document.getElementById('zydec').checked)
               load_zydec(0);
 
-          }, { 'opt': opt, 'march': march, 'src': code_editor.getValue() });
+          }, { 'opt': opt, 'march': march, 'src': code_editor.getValue() }, () => {
+            let zydec_spinner = document.getElementById('zydec_spinner');
+            if (zydec_spinner != null && zydec_spinner != undefined)
+              zydec_spinner.parentElement.removeChild(zydec_spinner);
+
+            let zydec_error = document.getElementById('zydec_error');
+            if (zydec_error != null && zydec_error != undefined)
+              zydec_error.parentElement.removeChild(zydec_error);
+
+            let disasm_spinner = document.getElementById('disasm_spinner');
+            if (disasm_spinner != null && disasm_spinner != undefined)
+              disasm_spinner.parentElement.removeChild(disasm_spinner);
+
+            let disasm_error = document.getElementById('disasm_error');
+            if (disasm_error == null || disasm_error == undefined)
+              append_element(document.getElementById('asm'), 'div', 'error disasm', '').id = 'disasm_error';
+          });
         }
       }
 
@@ -945,6 +1088,29 @@
         document.getElementById('stdout').innerText = "Waiting for Compile...";
         last_modification = Date.now();
         setTimeout(suggest_compile, sleep_time);
+
+        localStorage.setItem('code', code_editor.getValue());
+        localStorage.setItem('compiler', document.getElementById("compiler").value);
+        localStorage.setItem('compiler_opt', document.getElementById("opt_lvl").value);
+        localStorage.setItem('compiler_march', document.getElementById("march").value);
+
+        let zydec_spinner = document.getElementById('zydec_spinner');
+        if (zydec_spinner != null && zydec_spinner != undefined)
+          zydec_spinner.parentElement.removeChild(zydec_spinner);
+
+        let zydec_error = document.getElementById('zydec_error');
+        if (zydec_error != null && zydec_error != undefined)
+          zydec_error.parentElement.removeChild(zydec_error);
+
+        let disasm_spinner = document.getElementById('disasm_spinner');
+        if (disasm_spinner != null && disasm_spinner != undefined)
+          disasm_spinner.parentElement.removeChild(disasm_spinner);
+
+        let disasm_error = document.getElementById('disasm_error');
+        if (disasm_error != null && disasm_error != undefined)
+          disasm_error.parentElement.removeChild(disasm_error);
+        
+        append_element(document.getElementById('asm'), 'div', 'spinner disasm', '').id = 'disasm_spinner';
       }
 
       window.zydec_changed = function () {
@@ -952,11 +1118,15 @@
           try_display_zydec();
         else
           display_disasm();
+
+        localStorage.setItem('zydec_enabled', document.getElementById("zydec").checked);
       }
 
       window.mca_changed = function () {
         if (last_execution_flow_loop_idx >= 0)
           suggest_execution_flow(last_execution_flow_loop_idx);
+
+        localStorage.setItem('execution_flow_march', document.getElementById("mca_arch").value);
       }
 
       window.switch_to_flow = function() {
@@ -1005,41 +1175,51 @@
             '#include <x86intrin.h>',
             '#endif',
             '',
-            'void merge_lines(const uint32_t *pSourceLine, const uint32_t *pSourceLine2, const size_t length, uint32_t *pTargetLine)',
-            '{',
-            '  // what are we analzying today?',
-            '  const __m128i lower7bits = _mm_set1_epi8(0b1111111);',
-            '  const __m128i oneA = _mm_set1_epi64x(0x0000010001010001LL);',
-            '  const __m128i oneB = _mm_set1_epi64x(0x0101000100000100LL);',
+            '// what are we analyzing today? 🙂',
             '',
-            '  constexpr size_t colorsPerVector = sizeof(__m128i) / sizeof(uint32_t);',
+            'void rough_halve_line(const uint32_t *pSrcLine, const size_t length, uint32_t *pDstLine)',
+            '{',
+            '  const uint32_t *pSrcLine2 = pSrcLine + length;',
+            '',
+            '  const __m128i _7bits = _mm_set1_epi8(((uint8_t)1 << 7) - 1);',
+            '  const __m128i ditherA = _mm_set1_epi64x(0x0000010001010001LL);',
+            '  const __m128i ditherB = _mm_set1_epi64x(0x0101000100000100LL);',
             '',
             '  for (size_t x = 0; x < length; x += 2)',
             '  {',
+            '    // where were we?',
+            '    const __m128i *pLine0 = reinterpret_cast<const __m128i *>(pSrcLine + x * 2);',
+            '    const __m128i *pLine1 = reinterpret_cast<const __m128i *>(pSrcLine2 + x * 2);',
+            '',
             '    // load two vectors from both lines of the source.',
-            '    const __m128i line00r = _mm_loadu_si128(reinterpret_cast<const __m128i *>(pSourceLine + x * 2));',
-            '    const __m128i line01r = _mm_loadu_si128(reinterpret_cast<const __m128i *>(pSourceLine + x * 2 + colorsPerVector));',
-            '    const __m128i line10r = _mm_loadu_si128(reinterpret_cast<const __m128i *>(pSourceLine2 + x * 2));',
-            '    const __m128i line11r = _mm_loadu_si128(reinterpret_cast<const __m128i *>(pSourceLine2 + x * 2 + colorsPerVector));',
+            '    const __m128i raw00 = _mm_loadu_si128(pLine0);',
+            '    const __m128i raw01 = _mm_loadu_si128(pLine0 + 1);',
+            '    const __m128i raw10 = _mm_loadu_si128(pLine1);',
+            '    const __m128i raw11 = _mm_loadu_si128(pLine1 + 1);',
+            '   ',
+            '    // dither with saturation and divide by two.',
+            '    const __m128i half00 = _mm_and_si128(_7bits, _mm_srli_epi32(_mm_adds_epu8(raw00, ditherA), 1));',
+            '    const __m128i half01 = _mm_and_si128(_7bits, _mm_srli_epi32(_mm_adds_epu8(raw01, ditherB), 1));',
+            '    const __m128i half10 = _mm_and_si128(_7bits, _mm_srli_epi32(_mm_adds_epu8(raw10, ditherB), 1));',
+            '    const __m128i half11 = _mm_and_si128(_7bits, _mm_srli_epi32(_mm_adds_epu8(raw11, ditherA), 1));',
             '',
-            '    // dither with one (saturate to not accidentally cause an overflow with 0xFF) and divide by two.',
-            '    const __m128i line00 = _mm_and_si128(lower7bits, _mm_srli_epi32(_mm_adds_epu8(line00r, oneA), 1));',
-            '    const __m128i line01 = _mm_and_si128(lower7bits, _mm_srli_epi32(_mm_adds_epu8(line01r, oneB), 1));',
-            '    const __m128i line10 = _mm_and_si128(lower7bits, _mm_srli_epi32(_mm_adds_epu8(line10r, oneB), 1));',
-            '    const __m128i line11 = _mm_and_si128(lower7bits, _mm_srli_epi32(_mm_adds_epu8(line11r, oneA), 1));',
+            '    // add lines, dither and divide by two.',
+            '    const __m128 lineX0 = _mm_and_si128(_7bits, _mm_srli_epi32(_mm_adds_epu8(_mm_add_epi8(half00, half10), ditherA), 1));',
+            '    const __m128 lineX1 = _mm_and_si128(_7bits, _mm_srli_epi32(_mm_adds_epu8(_mm_add_epi8(half01, half11), ditherB), 1));',
             '',
-            '    // add, dither again and divide by two.',
-            '    const __m128i line_0 = _mm_and_si128(lower7bits, _mm_srli_epi32(_mm_adds_epu8(_mm_add_epi8(line00, line10), oneA), 1));',
-            '    const __m128i line_1 = _mm_and_si128(lower7bits, _mm_srli_epi32(_mm_adds_epu8(_mm_add_epi8(line01, line11), oneB), 1));',
+            '    // as `__m128`:',
+            '    const __m128 lineX0f = _mm_castsi128_ps(lineX0);',
+            '    const __m128 lineX1f = _mm_castsi128_ps(lineX1);',
             '',
             '    // shuffle the first and second color blocks into two separate vectors.',
-            '    const __m128i lo = _mm_castps_si128(_mm_shuffle_ps(_mm_castsi128_ps(line_0), _mm_castsi128_ps(line_1), _MM_SHUFFLE(2, 0, 2, 0)));',
-            '    const __m128i hi = _mm_castps_si128(_mm_shuffle_ps(_mm_castsi128_ps(line_0), _mm_castsi128_ps(line_1), _MM_SHUFFLE(3, 1, 3, 1)));',
+            '    const __m128i lo = _mm_castps_si128(_mm_shuffle_ps(lineX0f, lineX1f, _MM_SHUFFLE(2, 0, 2, 0)));',
+            '    const __m128i hi = _mm_castps_si128(_mm_shuffle_ps(lineX0f, lineX1f, _MM_SHUFFLE(3, 1, 3, 1)));',
             '',
             '    // add them.',
             '    const __m128i merged = _mm_add_epi8(lo, hi);',
             '',
-            '    _mm_store_si128(reinterpret_cast<__m128i *>(pTargetLine + x), merged);',
+            '    // store.',
+            '    _mm_store_si128(reinterpret_cast<__m128i *>(pDstLine + x), merged);',
             '  }',
             '}',
             ''
@@ -1125,7 +1305,7 @@
             <option value="zn4">Zen4</option>
           </optgroup>
         </select>
-        <i class="label">pseudo-decompile</i>
+        <i class="label" title="Instruction-Level Pseudo-Decompile Disassembly to improve readability powered by Zydec & Zydis">pseudo-decompile</i>
         <label class="switch">
           <input id="zydec" type="checkbox" checked="true" onchange="javascript:zydec_changed();">
           <span class="slider"></span>
@@ -1146,8 +1326,7 @@
       <div class="selector">
         <div class="tab active" id="tab_flow" onclick="javascript:switch_to_flow()">
           <b class="tab_descriptor"
-            name="Simulated Instruction Lane & Register Allocation powered by execution-flow & LLVM-MCA">Execution
-            Flow</b>
+            title="Simulated Instruction Lane & Register Allocation powered by execution-flow & LLVM-MCA">Execution Flow</b>
           <select id="mca_arch" onchange="javascript:mca_changed();">
             <optgroup label="Intel">
               <option value="adl">Alderlake</option>
