@@ -12,6 +12,10 @@
 <body>
   <div id="header">
     <img src="/assets/logo.png" />
+    <a class="donate" href="https://github.com/rainerzufalldererste/optim8-web" target="_blank">❤️ Donate</a>
+    <a class="legal" href="/impressum.html">Impressum & Datenschutz</a>
+    <a class="legal" href="/compilers.html">Compiler Licensing</a>
+    <i class="legal" onclick="javascript:do_not_consent_to_cookies()">Revoke Cookie Consent</i>
   </div>
   <div id="app_container">
     <script src="monaco-editor/min/vs/loader.js"></script>
@@ -25,6 +29,7 @@
       var loops = [];
       var view3State = "ef";
       var last_mca;
+      var cookie_consent = false;
 
       function load_url(url, callback, obj, failure_callback) {
         var xmlhttp;
@@ -33,32 +38,30 @@
           xmlhttp = new XMLHttpRequest();
         else
           xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
-        
+
         xmlhttp.onreadystatechange = function () {
           let obj;
-          
+
           try {
             obj = JSON.parse(xmlhttp.responseText)
           } catch (e) {
             failure_callback();
           }
 
-          if (xmlhttp.readyState == 4 && xmlhttp.status >= 200 && xmlhttp.status < 300)
-          {
+          if (xmlhttp.readyState == 4 && xmlhttp.status >= 200 && xmlhttp.status < 300) {
             try {
               callback(obj);
             } catch (e) {
               failure_callback();
             }
           }
-          else
-          {
+          else {
             failure_callback();
           }
         }
-        
+
         xmlhttp.ontimeout = (e) => {
-            failure_callback();
+          failure_callback();
         };
 
         xmlhttp.open("POST", url, true);
@@ -68,12 +71,12 @@
 
       function load_url_raw(url, callback, failure_callback) {
         var xmlhttp;
-        
+
         if (window.XMLHttpRequest)
           xmlhttp = new XMLHttpRequest();
         else
           xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
-        
+
         xmlhttp.onreadystatechange = function () {
           if (xmlhttp.readyState == 4 && xmlhttp.status >= 200 && xmlhttp.status < 300) {
             try {
@@ -85,9 +88,9 @@
             failure_callback();
           }
         }
-        
+
         xmlhttp.ontimeout = (e) => {
-            failure_callback();
+          failure_callback();
         };
 
         xmlhttp.open("GET", url, true);
@@ -241,6 +244,32 @@
         }
       }
 
+      window.load_from_cookies = function () {
+        var val = localStorage.getItem('code');
+        if (val != null && val != undefined)
+          code_editor.setValue(val);
+
+        val = localStorage.getItem('compiler');
+        if (val != null && val != undefined)
+          document.getElementById("compiler").value = val;
+
+        val = localStorage.getItem('compiler_opt');
+        if (val != null && val != undefined)
+          document.getElementById("opt_lvl").value = val;
+
+        val = localStorage.getItem('compiler_march');
+        if (val != null && val != undefined)
+          document.getElementById("march").value = val;
+
+        val = localStorage.getItem('zydec_enabled');
+        if (val != null && val != undefined)
+          document.getElementById("zydec").checked = val;
+
+        val = localStorage.getItem('execution_flow_march');
+        if (val != null && val != undefined)
+          document.getElementById("mca_arch").value = val;
+      };
+
       window.addEventListener('load', function () {
         var separators = document.getElementsByClassName('v_separator');
 
@@ -254,29 +283,13 @@
 
         handle_resize();
 
-        var val = localStorage.getItem('code');
-        if (val != null && val != undefined)
-          code_editor.setValue(val) ;
-      
-        val = localStorage.getItem('compiler');
-        if (val != null && val != undefined)
-          document.getElementById("compiler").value = val;
-        
-        val = localStorage.getItem('compiler_opt');
-        if (val != null && val != undefined)
-          document.getElementById("opt_lvl").value = val;
-        
-        val = localStorage.getItem('compiler_march');
-        if (val != null && val != undefined)
-          document.getElementById("march").value = val;
-        
-        val = localStorage.getItem('zydec_enabled');
-        if (val != null && val != undefined)
-          document.getElementById("zydec").checked = val;
-        
-        val = localStorage.getItem('execution_flow_march');
-        if (val != null && val != undefined)
-          document.getElementById("mca_arch").value = val;
+        if (localStorage.getItem('cookie_consent') != undefined && localStorage.getItem('cookie_consent') != null)
+          cookie_consent = true;
+
+        if (cookie_consent)
+          window.load_from_cookies();
+        else
+          document.getElementById('cookie_consent_banner').style.display = 'block';
       });
 
       window.addEventListener('resize', () => {
@@ -286,7 +299,7 @@
       function loadScript(url, callback) {
         var script = document.createElement("script");
         script.type = "text/javascript";
-      
+
         if (script.readyState) {
           script.onreadystatechange = function () {
             if (script.readyState === "loaded" || script.readyState === "complete") {
@@ -299,43 +312,43 @@
             callback();
           };
         }
-      
+
         script.src = url;
         document.getElementsByTagName("head")[0].appendChild(script);
       }
 
       function xmlToJson(xml) {
-      	var obj = {};
+        var obj = {};
 
-      	if (xml.nodeType == 1) {
-      		if (xml.attributes.length > 0) {
-      		obj["@attributes"] = {};
-      			for (var j = 0; j < xml.attributes.length; j++) {
-      				var attribute = xml.attributes.item(j);
-      				obj["@attributes"][attribute.nodeName] = attribute.nodeValue;
-      			}
-      		}
-      	} else if (xml.nodeType == 3) {
-      		obj = xml.nodeValue;
-      	}
-      
-      	if (xml.hasChildNodes()) {
-      		for(var i = 0; i < xml.childNodes.length; i++) {
-      			var item = xml.childNodes.item(i);
-      			var nodeName = item.nodeName;
-      			if (typeof(obj[nodeName]) == "undefined") {
-      				obj[nodeName] = xmlToJson(item);
-      			} else {
-      				if (typeof(obj[nodeName].push) == "undefined") {
-      					var old = obj[nodeName];
-      					obj[nodeName] = [];
-      					obj[nodeName].push(old);
-      				}
-      				obj[nodeName].push(xmlToJson(item));
-      			}
-      		}
-      	}
-      	return obj;
+        if (xml.nodeType == 1) {
+          if (xml.attributes.length > 0) {
+            obj["@attributes"] = {};
+            for (var j = 0; j < xml.attributes.length; j++) {
+              var attribute = xml.attributes.item(j);
+              obj["@attributes"][attribute.nodeName] = attribute.nodeValue;
+            }
+          }
+        } else if (xml.nodeType == 3) {
+          obj = xml.nodeValue;
+        }
+
+        if (xml.hasChildNodes()) {
+          for (var i = 0; i < xml.childNodes.length; i++) {
+            var item = xml.childNodes.item(i);
+            var nodeName = item.nodeName;
+            if (typeof (obj[nodeName]) == "undefined") {
+              obj[nodeName] = xmlToJson(item);
+            } else {
+              if (typeof (obj[nodeName].push) == "undefined") {
+                var old = obj[nodeName];
+                obj[nodeName] = [];
+                obj[nodeName].push(old);
+              }
+              obj[nodeName].push(xmlToJson(item));
+            }
+          }
+        }
+        return obj;
       };
 
       var iig_loaded = false;
@@ -345,7 +358,7 @@
 
       window.search_iig = function (query) {
         iig_last_search = query;
-        
+
         if (!iig_loaded && !iig_loading) {
           iig_loading = true;
           loadScript('/assets/data.js', () => {
@@ -395,7 +408,7 @@
                     match_quality += 1;
               }
             }
-            
+
             if (i.CPUID != undefined) {
               if (i.CPUID.length == undefined || i.CPUID.length == 0) {
                 if (i.CPUID['#text'].toLowerCase() === q)
@@ -438,7 +451,7 @@
             if (i.parameter != undefined) {
               if (i.parameter.length != undefined && i.parameter.length != 0) {
                 for (let l = 0; l < i.parameter.length; l++)
-                   params.push({ 'type': i.parameter[l]['@attributes'].type, 'name': i.parameter[l]['@attributes'].varname });
+                  params.push({ 'type': i.parameter[l]['@attributes'].type, 'name': i.parameter[l]['@attributes'].varname });
               } else {
                 params.push({ 'type': i.parameter['@attributes'].type, 'name': i.parameter['@attributes'].varname });
               }
@@ -449,7 +462,7 @@
                 for (let l = 0; l < i.instruction.length; l++)
                   instructions.push(i.instruction[l]['@attributes'].name + ' ' + i.instruction[l]['@attributes'].form);
               } else {
-                  instructions.push(i.instruction['@attributes'].name + ' ' + i.instruction['@attributes'].form);
+                instructions.push(i.instruction['@attributes'].name + ' ' + i.instruction['@attributes'].form);
               }
             }
 
@@ -492,13 +505,24 @@
 
           append_element(header, 'i', 'iig_misc', ')');
           append_element(header, 'b', 'iig_tech ' + i.tech.replaceAll(' / ', ' '), i.tech);
-          
+
           append_element(body, 'div', 'iig_desc', i.desc)
           append_element(body, 'div', 'iig_op', i.op)
-          
+
           for (let k = 0; k < i.instructions.length; k++)
             append_element(body, 'div', 'iig_instruction', i.instructions[k]);
         }
+      }
+
+      function error_execution_flow() {
+        let stats = document.getElementById('analysis');
+        stats.style.display = 'none';
+
+        let flow = document.getElementById('execution_flow');
+        flow.style.display = 'inherit';
+        flow.innerHTML = "";
+
+        append_element(flow, 'div', 'error exec_flow', '');
       }
 
       var last_execution_flow_loop_idx = -1;
@@ -507,7 +531,11 @@
         if (last_mca == null)
           return;
 
-        draw_execution_flow();
+        try {
+          draw_execution_flow();
+        } catch (e) {
+          error_execution_flow();
+        }
       }
 
       function draw_execution_flow() {
@@ -731,16 +759,27 @@
 
             draw_execution_flow();
           }, request, () => {
-            let stats = document.getElementById('analysis');
-            stats.style.display = 'none';
-
-            let flow = document.getElementById('execution_flow');
-            flow.style.display = 'inherit';
-            flow.innerHTML = "";
-
-            append_element(flow, 'div', 'error exec_flow', '');
+            error_execution_flow();
           });
         })();
+      }
+
+      function error_zydec() {
+        let zydec_spinner = document.getElementById('zydec_spinner');
+        if (zydec_spinner != null && zydec_spinner != undefined)
+          zydec_spinner.parentElement.removeChild(zydec_spinner);
+
+        let disasm_spinner = document.getElementById('disasm_spinner');
+        if (disasm_spinner != null && disasm_spinner != undefined)
+          disasm_spinner.parentElement.removeChild(disasm_spinner);
+
+        let disasm_error = document.getElementById('disasm_error');
+        if (disasm_error != null && disasm_error != undefined)
+          disasm_error.parentElement.removeChild(disasm_error);
+
+        let zydec_error = document.getElementById('zydec_error');
+        if (zydec_error == null || zydec_error == undefined)
+          append_element(document.getElementById('asm'), 'div', 'error zydec', '').id = 'zydec_error';
       }
 
       function display_zydec() {
@@ -856,30 +895,20 @@
               display_zydec();
             }
           }, request, () => {
-            let zydec_spinner = document.getElementById('zydec_spinner');
-            if (zydec_spinner != null && zydec_spinner != undefined)
-              zydec_spinner.parentElement.removeChild(zydec_spinner);
-
-            let disasm_spinner = document.getElementById('disasm_spinner');
-            if (disasm_spinner != null && disasm_spinner != undefined)
-              disasm_spinner.parentElement.removeChild(disasm_spinner);
-
-            let disasm_error = document.getElementById('disasm_error');
-            if (disasm_error != null && disasm_error != undefined)
-              disasm_error.parentElement.removeChild(disasm_error);
-
-            let zydec_error = document.getElementById('zydec_error');
-            if (zydec_error == null || zydec_error == undefined)
-              append_element(document.getElementById('asm'), 'div', 'error zydec', '').id = 'zydec_error';
+            error_zydec();
           });
         })();
       }
 
       function try_display_zydec() {
-        if (last_dump['zydec'] == true)
-          display_zydec();
-        else
-          load_zydec(0);
+        try {
+          if (last_dump['zydec'] == true)
+            display_zydec();
+          else
+            load_zydec(0);
+        } catch (e) {
+          error_zydec();
+        }
       }
 
       function display_disasm() {
@@ -931,6 +960,24 @@
 
         append_element(asm, 'div', 'asm_spacing', '');
         offer_redraw_execution_flow();
+      }
+
+      function error_disasm() {
+        let zydec_spinner = document.getElementById('zydec_spinner');
+        if (zydec_spinner != null && zydec_spinner != undefined)
+          zydec_spinner.parentElement.removeChild(zydec_spinner);
+
+        let zydec_error = document.getElementById('zydec_error');
+        if (zydec_error != null && zydec_error != undefined)
+          zydec_error.parentElement.removeChild(zydec_error);
+
+        let disasm_spinner = document.getElementById('disasm_spinner');
+        if (disasm_spinner != null && disasm_spinner != undefined)
+          disasm_spinner.parentElement.removeChild(disasm_spinner);
+
+        let disasm_error = document.getElementById('disasm_error');
+        if (disasm_error == null || disasm_error == undefined)
+          append_element(document.getElementById('asm'), 'div', 'error disasm', '').id = 'disasm_error';
       }
 
       function suggest_compile() {
@@ -1065,21 +1112,7 @@
               load_zydec(0);
 
           }, { 'opt': opt, 'march': march, 'src': code_editor.getValue() }, () => {
-            let zydec_spinner = document.getElementById('zydec_spinner');
-            if (zydec_spinner != null && zydec_spinner != undefined)
-              zydec_spinner.parentElement.removeChild(zydec_spinner);
-
-            let zydec_error = document.getElementById('zydec_error');
-            if (zydec_error != null && zydec_error != undefined)
-              zydec_error.parentElement.removeChild(zydec_error);
-
-            let disasm_spinner = document.getElementById('disasm_spinner');
-            if (disasm_spinner != null && disasm_spinner != undefined)
-              disasm_spinner.parentElement.removeChild(disasm_spinner);
-
-            let disasm_error = document.getElementById('disasm_error');
-            if (disasm_error == null || disasm_error == undefined)
-              append_element(document.getElementById('asm'), 'div', 'error disasm', '').id = 'disasm_error';
+            error_disasm();
           });
         }
       }
@@ -1089,10 +1122,12 @@
         last_modification = Date.now();
         setTimeout(suggest_compile, sleep_time);
 
-        localStorage.setItem('code', code_editor.getValue());
-        localStorage.setItem('compiler', document.getElementById("compiler").value);
-        localStorage.setItem('compiler_opt', document.getElementById("opt_lvl").value);
-        localStorage.setItem('compiler_march', document.getElementById("march").value);
+        if (cookie_consent) {
+          localStorage.setItem('code', code_editor.getValue());
+          localStorage.setItem('compiler', document.getElementById("compiler").value);
+          localStorage.setItem('compiler_opt', document.getElementById("opt_lvl").value);
+          localStorage.setItem('compiler_march', document.getElementById("march").value);
+        }
 
         let zydec_spinner = document.getElementById('zydec_spinner');
         if (zydec_spinner != null && zydec_spinner != undefined)
@@ -1109,27 +1144,35 @@
         let disasm_error = document.getElementById('disasm_error');
         if (disasm_error != null && disasm_error != undefined)
           disasm_error.parentElement.removeChild(disasm_error);
-        
+
         append_element(document.getElementById('asm'), 'div', 'spinner disasm', '').id = 'disasm_spinner';
       }
 
       window.zydec_changed = function () {
-        if (document.getElementById('zydec').checked)
+        if (document.getElementById('zydec').checked) {
           try_display_zydec();
-        else
-          display_disasm();
+        } else {
+          try {
+            display_disasm();
+          } catch (e) {
+            error_disasm();
+          }
+        }
 
-        localStorage.setItem('zydec_enabled', document.getElementById("zydec").checked);
+        if (cookie_consent)
+          localStorage.setItem('zydec_enabled', document.getElementById("zydec").checked);
       }
 
       window.mca_changed = function () {
         if (last_execution_flow_loop_idx >= 0)
           suggest_execution_flow(last_execution_flow_loop_idx);
 
-        localStorage.setItem('execution_flow_march', document.getElementById("mca_arch").value);
+        
+        if (cookie_consent)
+          localStorage.setItem('execution_flow_march', document.getElementById("mca_arch").value);
       }
 
-      window.switch_to_flow = function() {
+      window.switch_to_flow = function () {
         var flow = document.getElementById('tab_flow');
         var iig = document.getElementById('tab_iig');
 
@@ -1141,12 +1184,12 @@
 
         flow.style.display = 'inherit';
         iig.style.display = 'none';
-        
+
         view3State = 'ef';
         offer_redraw_execution_flow();
       }
 
-      window.switch_to_iig = function() {
+      window.switch_to_iig = function () {
         var flow = document.getElementById('tab_flow');
         var iig = document.getElementById('tab_iig');
 
@@ -1160,6 +1203,24 @@
         flow.style.display = 'none';
 
         view3State = 'iig';
+      }
+
+      window.consent_to_cookies = function () {
+        console.log('cookie consent granted!');
+        document.getElementById('cookie_consent_banner').style.display = 'none';
+
+        cookie_consent = true;
+        localStorage.setItem('cookie_consent', true);
+
+        load_from_cookies();
+      }
+
+      window.do_not_consent_to_cookies = function () {
+        console.log('cookie consent revoked!');
+        document.getElementById('cookie_consent_banner').style.display = 'none';
+
+        cookie_consent = false;
+        localStorage.clear();
       }
 
       require.config({ paths: { 'vs': 'monaco-editor/min/vs' } });
@@ -1305,7 +1366,8 @@
             <option value="zn4">Zen4</option>
           </optgroup>
         </select>
-        <i class="label" title="Instruction-Level Pseudo-Decompile Disassembly to improve readability powered by Zydec & Zydis">pseudo-decompile</i>
+        <i class="label"
+          title="Instruction-Level Pseudo-Decompile Disassembly to improve readability powered by Zydec & Zydis">pseudo-decompile</i>
         <label class="switch">
           <input id="zydec" type="checkbox" checked="true" onchange="javascript:zydec_changed();">
           <span class="slider"></span>
@@ -1326,7 +1388,8 @@
       <div class="selector">
         <div class="tab active" id="tab_flow" onclick="javascript:switch_to_flow()">
           <b class="tab_descriptor"
-            title="Simulated Instruction Lane & Register Allocation powered by execution-flow & LLVM-MCA">Execution Flow</b>
+            title="Simulated Instruction Lane & Register Allocation powered by execution-flow & LLVM-MCA">Execution
+            Flow</b>
           <select id="mca_arch" onchange="javascript:mca_changed();">
             <optgroup label="Intel">
               <option value="adl">Alderlake</option>
@@ -1374,10 +1437,27 @@
         <table id="execution_flow" style="display: none;"></table>
       </div>
       <div class="view3_opt" id="documentation" style="display: none;">
-        <input type="text" placeholder="Type anything to search..." id="documentation_search" oninput="javascript:search_iig(document.getElementById('documentation_search').value)"></input>
-        <div class="iig_disclaimer">The Intel Intrinsics Guide is Courtesy of & Copyright Intel Corporation. All trademarks belong to their respective owners.</div>
+        <input type="text" placeholder="Type anything to search..." id="documentation_search"
+          oninput="javascript:search_iig(document.getElementById('documentation_search').value)"></input>
+        <div class="iig_disclaimer">The Intel Intrinsics Guide is Courtesy of & Copyright Intel Corporation. All
+          trademarks belong to their respective owners.</div>
         <div id="iig_results"></div>
+        <div id="iig_spacing"></div>
       </div>
+    </div>
+  </div>
+  <div id="cookie_consent_banner" style="display: none">
+    <div class="cookie_internal">
+      <h2>Hi</h2>
+      <p>This website doesn't use cookies, but 'localStorage' to store your session and settings in your browser.</p>
+      <p>I don't use that information to try to track you, but if you really really really want to, you can opt out of this feature to get a  clean slate every time you open up a new tab.</p>
+      <p>Your data will be sent to the server to perform the basic functions of this website (like compiling and analyzing your code). I believe hosting companies analyze the traffic, because that's what they do, but there's very little I can do about that.</p>
+      <br/>
+      <p>Anyhow, this is a pretty small project, so if you like it or find it useful, please consider <a href="https://github.com/rainerzufalldererste/optim8-web">supporting it on GitHub</a>. Thanks! ❤️</p>
+      <br>
+      <br>
+      <i class="cookie_consent" onclick="javascript:consent_to_cookies()">Store my Session and use Cookie-esque technology</i>
+      <i class="cookie_no_consent" onclick="javascript:do_not_consent_to_cookies()">Fresh slate every single time, don't use Cookie-esque technology</i>
     </div>
   </div>
 </body>

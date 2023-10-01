@@ -258,7 +258,8 @@ body {
   cursor: default;
 }
 
-.disasm .function p.asm_line.matched ::selection, .disasm .function p.asm_line.matched ::selection {
+.disasm .function p.asm_line.matched ::selection,
+.disasm .function p.asm_line.matched ::selection {
   background: #86868654;
 }
 
@@ -935,17 +936,120 @@ div.spinner {
 
 @keyframes spin {
   from {
-      transform:rotate(0deg);
+    transform: rotate(0deg);
   }
+
   to {
-      transform:rotate(360deg);
+    transform: rotate(360deg);
   }
 }
 
 @keyframes error-dance {
-  0% { transform: translate(0, -2pt) rotate(0deg); opacity: 0; }
-  33% { opacity: 0; transform: translate(0, -2pt) rotate(0deg); opacity: 0; }
-  50% { transform: translate(5pt, 5pt) rotate(5deg); opacity: 1; }
-  66% { transform: translate(-5pt, 2pt) rotate(-5deg); }
-  100% { transform: translate(0, 0) rotate(0deg); }
+  0% {
+    transform: translate(0, -2pt) rotate(0deg);
+    opacity: 0;
+  }
+
+  33% {
+    opacity: 0;
+    transform: translate(0, -2pt) rotate(0deg);
+    opacity: 0;
+  }
+
+  50% {
+    transform: translate(5pt, 5pt) rotate(5deg);
+    opacity: 1;
+  }
+
+  66% {
+    transform: translate(-5pt, 2pt) rotate(-5deg);
+  }
+
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+}
+
+#iig_spacing {
+  height: 150pt;
+}
+
+#cookie_consent_banner {
+  position: absolute;
+  z-index: 1000;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  top: 0;
+  text-align: center;
+  background: #0009;
+}
+
+.cookie_internal {
+  margin: 50pt auto;
+  width: 40%;
+  min-width: 500pt;
+  padding: 20pt 50pt 60pt 50pt;
+  background: #050505;
+  font-size: 13pt;
+  color: #fff;
+  font-family: 'Consolas', monospace;
+  font-style: normal;
+}
+
+#cookie_consent_banner a, #cookie_consent_banner a:visited {
+  color: #d96c8b;
+}
+
+#cookie_consent_banner a:hover {
+  color: #ffb5ca;
+}
+
+.cookie_consent, .cookie_no_consent {
+  display: block;
+  background: #222;
+  border: 2pt solid #444;
+  width: fit-content;
+  padding: 5pt 10pt;
+  margin: 5pt auto;
+  cursor: pointer;
+  color: #fff !important;
+  cursor: pointer;
+  user-select: none;
+}
+
+.cookie_consent:hover, .cookie_no_consent:hover {
+  background: #444;
+}
+
+#header a, #header .legal {
+  float: right;
+  cursor: pointer;
+  user-select: none;
+}
+
+.donate, .donate:visited {
+  background: linear-gradient(34deg, #ae505d, #93373c);
+  padding: 2pt 8pt;
+  margin: -2pt 5pt;
+  color: #f2e2ed;
+  text-decoration: none;
+  font-family: 'Segoe UI', sans-serif;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 13pt;
+  user-select: none;
+}
+
+#header .legal, #header .legal:visited {
+  color: #7e7e7e;
+  font-size: 10pt;
+  margin: 5pt 10pt;
+  font-family: 'Segoe UI', sans-serif;
+  text-decoration: none;
+}
+
+norender {
+  position: absolute;
+  top: -50pt;
 }
