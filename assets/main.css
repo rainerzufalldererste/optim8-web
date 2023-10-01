@@ -1016,6 +1016,7 @@ div.spinner {
   color: #fff !important;
   cursor: pointer;
   user-select: none;
+  font-style: normal;
 }
 
 .cookie_consent:hover, .cookie_no_consent:hover {
