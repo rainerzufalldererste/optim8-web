@@ -62,6 +62,7 @@ body {
 .app_view.disasm .stdout {
   padding: 5pt 15pt;
   height: 20%;
+  overflow: auto;
 }
 
 #app_container {

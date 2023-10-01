@@ -41,17 +41,10 @@
           xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
 
         xmlhttp.onreadystatechange = function () {
-          let obj;
-
-          try {
-            obj = JSON.parse(xmlhttp.responseText)
-          } catch (e) {
-            failure_callback();
-          }
-
           if (xmlhttp.readyState == 4) {
             if (xmlhttp.status >= 200 && xmlhttp.status < 300) {
               try {
+                let obj = JSON.parse(xmlhttp.responseText);
                 callback(obj);
               } catch (e) {
                 failure_callback();
@@ -643,7 +636,7 @@
 
             for (let j = 0; j < iter.ports.length; j++) {
               let lane_idx = iter.ports[j];
-              let lane = append_element(flow_lanes[lane_idx], 'div', 'lane', '');
+              let lane = append_element(flow_lanes[Math.max(lane_idx - 1, 0)], 'div', 'lane', '');
               lane.style.setProperty('--start', iter.issued);
               lane.style.setProperty('--length', iter.executed - iter.issued);
               lane.style.setProperty('--iteration', k);
@@ -1049,11 +1042,12 @@
               compiler_out = "Success!";
 
             stdout.innerText = compiler_out;
+            stdout.innerHTML = stdout.innerHTML.replaceAll(' ', '&ensp;');
             var dumplines = objdump_out.split('\n');
             last_dump = [];
             var last_sym = [];
             var expect_symbol = true;
-            const jumps = ['jmp', 'jb', 'jbe', 'jcxz', 'je', 'jecxz', 'jl', 'jle', 'jnb', 'jnbe', 'jnl', 'jnle', 'jno', 'jnp', 'jns', 'jnz', 'jo', 'jp', 'js', 'jz'];
+            const jumps = ['jmp', 'ja', 'jae', 'jb', 'jbe', 'jc', 'jcxz', 'jrcxz', 'je', 'jecxz', 'jg', 'jge', 'jl', 'jle', 'jna', 'jnae', 'jnb', 'jnbe', 'jnc', 'jne', 'jnbe', 'jng', 'jnge', 'jnl', 'jnle', 'jno', 'jnp', 'jns', 'jnz', 'jo', 'jp', 'jpe', 'jpo', 'js', 'jz'];
 
             for (let i = 0; i < dumplines.length; i++) {
               let x = dumplines[i];
