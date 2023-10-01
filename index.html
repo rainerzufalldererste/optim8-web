@@ -30,6 +30,7 @@
       var view3State = "ef";
       var last_mca;
       var cookie_consent = false;
+      var loaded_with_external_data = false;
 
       function load_url(url, callback, obj, failure_callback) {
         var xmlhttp;
@@ -48,15 +49,16 @@
             failure_callback();
           }
 
-          if (xmlhttp.readyState == 4 && xmlhttp.status >= 200 && xmlhttp.status < 300) {
-            try {
-              callback(obj);
-            } catch (e) {
+          if (xmlhttp.readyState == 4) {
+            if (xmlhttp.status >= 200 && xmlhttp.status < 300) {
+              try {
+                callback(obj);
+              } catch (e) {
+                failure_callback();
+              }
+            } else {
               failure_callback();
             }
-          }
-          else {
-            failure_callback();
           }
         }
 
@@ -78,14 +80,16 @@
           xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
 
         xmlhttp.onreadystatechange = function () {
-          if (xmlhttp.readyState == 4 && xmlhttp.status >= 200 && xmlhttp.status < 300) {
-            try {
-              callback(xmlhttp.responseText);
-            } catch (e) {
+          if (xmlhttp.readyState == 4) {
+            if (xmlhttp.status >= 200 && xmlhttp.status < 300) {
+              try {
+                callback(xmlhttp.responseText);
+              } catch (e) {
+                failure_callback();
+              }
+            } else {
               failure_callback();
             }
-          } else {
-            failure_callback();
           }
         }
 
@@ -245,6 +249,9 @@
       }
 
       window.load_from_cookies = function () {
+        if (loaded_with_external_data)
+          return;
+
         var val = localStorage.getItem('code');
         if (val != null && val != undefined)
           code_editor.setValue(val);
@@ -282,6 +289,41 @@
           register_horizontal_splitter(separators[i]);
 
         handle_resize();
+
+        // load code from params.
+        {
+          const params = new URLSearchParams(document.location.search);
+          var gistuser = params.get('gistuser');
+          var hash = params.get('hash');
+          var file = params.get('file');
+
+          if (gistuser != undefined && hash != undefined && file != undefined) {
+            load_url_raw('https://gist.githubusercontent.com/' + gistuser + '/' + hash + '/raw/' + file, (e) => {
+              loaded_with_external_data = true;
+              code_editor.setValue(e);
+            }, () => { alert('Failed to load gist file.'); });
+          }
+
+          var val = params.get('compiler');
+          if (val != null && val != undefined)
+            document.getElementById("compiler").value = val.replaceAll('clang  ', 'clang++').replaceAll('g  ', 'g++');
+
+          val = params.get('opt');
+          if (val != null && val != undefined)
+            document.getElementById("opt_lvl").value = val;
+
+          val = params.get('march');
+          if (val != null && val != undefined)
+            document.getElementById("march").value = val;
+
+          val = params.get('zydec');
+          if (val != null && val != undefined)
+            document.getElementById("zydec").checked = val;
+
+          val = params.get('mca_arch');
+          if (val != null && val != undefined)
+            document.getElementById("mca_arch").value = val;
+        }
 
         if (localStorage.getItem('cookie_consent') != undefined && localStorage.getItem('cookie_consent') != null)
           cookie_consent = true;
@@ -1122,7 +1164,7 @@
         last_modification = Date.now();
         setTimeout(suggest_compile, sleep_time);
 
-        if (cookie_consent) {
+        if (cookie_consent && !loaded_with_external_data) {
           localStorage.setItem('code', code_editor.getValue());
           localStorage.setItem('compiler', document.getElementById("compiler").value);
           localStorage.setItem('compiler_opt', document.getElementById("opt_lvl").value);
@@ -1159,7 +1201,7 @@
           }
         }
 
-        if (cookie_consent)
+        if (cookie_consent && !loaded_with_external_data)
           localStorage.setItem('zydec_enabled', document.getElementById("zydec").checked);
       }
 
@@ -1167,8 +1209,7 @@
         if (last_execution_flow_loop_idx >= 0)
           suggest_execution_flow(last_execution_flow_loop_idx);
 
-        
-        if (cookie_consent)
+        if (cookie_consent && !loaded_with_external_data)
           localStorage.setItem('execution_flow_march', document.getElementById("mca_arch").value);
       }
 
@@ -1222,6 +1263,15 @@
         cookie_consent = false;
         localStorage.clear();
       }
+
+      // capture ctrl+s. doesn't do anything at the moment, but preventing a popup from appearing. but could be used to store stuff somewhere in the future.
+      document.addEventListener('keydown', e => {
+        if (e.ctrlKey && e.key === 's') {
+          e.preventDefault();
+
+          // well, nothing yet.
+        }
+      });
 
       require.config({ paths: { 'vs': 'monaco-editor/min/vs' } });
       require(['vs/editor/editor.main'], function () {
