@@ -12,9 +12,9 @@
 <body>
   <div id="header">
     <img src="/assets/logo.png" />
-    <a class="donate" href="https://github.com/rainerzufalldererste/optim8-web" target="_blank">❤️ Donate</a>
+    <a class="donate" href="https://github.com/sponsors/rainerzufalldererste" target="_blank">❤️ Donate</a>
     <a class="legal" href="/impressum.html">Impressum & Datenschutz</a>
-    <a class="legal" href="/compilers.html">Compiler Licensing</a>
+    <a class="legal" href="/compilers.html">Compiler & Dependency License information</a>
     <i class="legal" onclick="javascript:do_not_consent_to_cookies()">Revoke Cookie Consent</i>
   </div>
   <div id="app_container">
@@ -24,7 +24,7 @@
       var code_editor;
       var last_modification = Date.now();
       const sleep_time = 3000;
-      const server_url = "https://optim8.org/nlz/"
+      const server_url = "https://optim8.org/nlz/"; //'http://localhost:61919/';
       var last_dump;
       var loops = [];
       var view3State = "ef";
@@ -584,6 +584,7 @@
           for (let j = 0; j < func.length; j++) {
             func[j].element.className = func[j].element.className.replaceAll(' matched', '');
             removeChildNodesByClass(func[j].element, 'dependency');
+            removeChildNodesByClass(func[j].element, 'mca_info');
           }
         }
 
@@ -608,7 +609,6 @@
         let headline_row = append_element(flow, "tr", "", "");
         let usage_row = append_element(flow, "tr", "", "");
         let flow_row = append_element(flow, "tr", "exec_flow_tr", "");
-        append_element(flow_row, "div", "exec_flow_spacing", "").style.setProperty('--position', e.stats.cycles_total);
 
         let flow_lanes = [];
 
@@ -619,6 +619,8 @@
           var lane = append_element(flow_row, "td", "flow_lane", "");
           flow_lanes.push(lane);
         }
+
+        append_element(flow_lanes[0], "div", "exec_flow_spacing", "").style.setProperty('--position', e.stats.cycles_total);
 
         let func_idx = 0;
         let instruction_idx = 0;
@@ -636,7 +638,7 @@
 
             for (let j = 0; j < iter.ports.length; j++) {
               let lane_idx = iter.ports[j];
-              let lane = append_element(flow_lanes[Math.max(lane_idx - 1, 0)], 'div', 'lane', '');
+              let lane = append_element(flow_lanes[lane_idx], 'div', 'lane', '');
               lane.style.setProperty('--start', iter.issued);
               lane.style.setProperty('--length', iter.executed - iter.issued);
               lane.style.setProperty('--iteration', k);
@@ -786,6 +788,7 @@
         flow.style.display = 'inherit';
         flow.innerHTML = "";
 
+        last_mca = null;
         append_element(flow, 'div', 'spinner', '');
 
         (() => {
@@ -1499,7 +1502,7 @@
       <p>I don't use that information to try to track you, but if you really really really want to, you can opt out of this feature to get a  clean slate every time you open up a new tab.</p>
       <p>Your data will be sent to the server to perform the basic functions of this website (like compiling and analyzing your code). I believe hosting companies analyze the traffic, because that's what they do, but there's very little I can do about that.</p>
       <br/>
-      <p>Anyhow, this is a pretty small project, so if you like it or find it useful, please consider <a href="https://github.com/rainerzufalldererste/optim8-web">supporting it on GitHub</a>. Thanks! ❤️</p>
+      <p>Anyhow, this is a pretty small project, so if you like it or find it useful, please consider <a href="https://github.com/sponsors/rainerzufalldererste">supporting it on GitHub</a>. Thanks! ❤️</p>
       <br>
       <br>
       <i class="cookie_consent" onclick="javascript:consent_to_cookies()">Store my Session and use Cookie-esque technology</i>
