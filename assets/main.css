@@ -535,25 +535,31 @@ i.isa.AVX_VNNI,
   display: block;
   margin: 10pt 10pt;
   width: fit-content;
-  background: #333;
+  background: linear-gradient(30deg, #46979b, #306f6f);
   padding: 10pt 20pt;
+  color: #fff;
+  border: 2pt solid #8dd2d5;
+  border-radius: 10pt;
+  font-size: 16pt;
 }
 
 #analysis_selector .loop_selection {
-  background: #555;
+  background: linear-gradient(30deg, #ce9041, #ceb141);
   padding: 5pt 10pt;
   font-family: 'Segoe UI', monospace;
-  border: 1pt solid #777;
-  color: #ccc;
+  border: 1pt solid #ffcc96;
+  color: #fff;
   font-weight: bold;
   cursor: pointer;
   width: fit-content;
   display: inline-block;
+  margin: 0 2pt;
+  border-radius: 5pt;
+  font-size: 12pt;
 }
 
 #analysis_selector .loop_selection:hover {
-  background: #666;
-  color: #ddd;
+  background: linear-gradient(30deg, #dfa55c, #ddc771);
 }
 
 #analysis {

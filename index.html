@@ -1091,8 +1091,17 @@
               }
             }
 
+            last_mca = null;
+            
+            let stats = document.getElementById('analysis');
+            stats.style.display = 'none';
+            
+            let flow = document.getElementById('execution_flow');
+            flow.style.display = 'none';
+            flow.innerHTML = "";
+
             var loop_selector = document.getElementById('analysis_selector');
-            loop_selector.innerHTML = "Select Region to Analyze: ";
+            loop_selector.innerHTML = "Select Region to Analyze<br/>";
 
             if (loops.length == 1) {
               loop_selector.style.display = "none";
