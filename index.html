@@ -929,8 +929,6 @@
       }
 
       function load_zydec(dump_index) {
-        console.log('requesting zydec ' + dump_index);
-
         let zydec_spinner = document.getElementById('zydec_spinner');
         if (zydec_spinner == null || zydec_spinner == undefined)
           append_element(document.getElementById('asm'), 'div', 'spinner zydec', '').id = 'zydec_spinner';
@@ -948,7 +946,6 @@
           let dump_idx = dump_index;
 
           load_url(server_url + 'zydec', (e) => {
-            console.log('got zydec ' + dump_idx);
             let func = last_dump[dump_idx];
             let idx = 0;
             let data = e.zydec.split('\n');
@@ -979,7 +976,6 @@
               display_zydec();
             }
           }, request, () => {
-            console.log('failed to get zydec ' + dump_idx);
             error_zydec();
           });
         })();
@@ -1402,7 +1398,6 @@
       }
 
       window.consent_to_cookies = function () {
-        console.log('cookie consent granted!');
         document.getElementById('cookie_consent_banner').style.display = 'none';
 
         cookie_consent = true;
@@ -1412,7 +1407,6 @@
       }
 
       window.do_not_consent_to_cookies = function () {
-        console.log('cookie consent revoked!');
         document.getElementById('cookie_consent_banner').style.display = 'none';
 
         cookie_consent = false;
