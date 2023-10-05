@@ -23,8 +23,8 @@
     <script type="module">
       var code_editor;
       var last_modification = Date.now();
-      const sleep_time = 3000;
-      const server_url = "https://optim8.org/nlz/"; //'http://localhost:61919/';
+      const sleep_time = 2000;
+      const server_url = document.location.hostname == 'localhost' ? 'http://localhost:61919/' : 'https://optim8.org/nlz/';
       var last_dump;
       var loops = [];
       var view3State = "ef";
@@ -849,7 +849,7 @@
 
             let sect = data.dec.split('// ');
 
-            append_element(n, 'b', 'addr dec', data.addr.toString(16));
+            var addr = append_element(n, 'b', 'addr dec', data.addr.toString(16));
 
             var dec = append_element(n, 'b', 'dec', sect[0]);
 
@@ -883,6 +883,20 @@
               append_element(n, 'b', 'comment dec', "// " + sect[1]);
 
             append_element(n, 'i', 'isa ' + data.isa, data.isa);
+            append_element(n, 'br', 'hidden', '');
+
+            if (data.isJump) {
+              for (let k = 0; k < sym.length; k++) {
+                let target = sym[k];
+
+                if (target.addr != data.target)
+                  continue;
+
+                append_element(addr, 'div', "jmp " + (target.addr < data.addr ? "above" : "below"), "").style.setProperty('--offset', Math.abs(k - j));
+                
+                break;
+              }
+            }
           }
         }
 
@@ -978,13 +992,15 @@
           sym.element = append_element(container, 'h3', 'symbol', sym.name);
 
           for (let j = 0; j < sym.length; j++) {
+            let instruction = sym[j];
+
             var e = append_element(container, 'p', 'asm_line', '');
-            e.origin = { 'sym': i, 'line': j, 'addr': sym[j].addr };
-            sym[j].element = e;
-            append_element(e, 'b', 'addr', sym[j].addrStr);
-            append_element(e, 'i', 'bytes', bytesToHex(sym[j].bytes));
-            append_element(e, 'b', sym[j].isJump ? 'jump' : 'mnemonic', sym[j].mnemonic);
-            var params = append_element(e, 'i', 'params', sym[j].params);
+            e.origin = { 'sym': i, 'line': j, 'addr': instruction.addr };
+            instruction.element = e;
+            var addr = append_element(e, 'b', 'addr', instruction.addrStr);
+            append_element(e, 'i', 'bytes', bytesToHex(instruction.bytes));
+            append_element(e, 'b', instruction.isJump ? 'jump' : 'mnemonic', instruction.mnemonic);
+            var params = append_element(e, 'i', 'params', instruction.params);
             params.innerHTML = params.innerHTML.replaceAll('ZMMWORD PTR ', '<i class="ptr">ZMMWORD  PTR </i> ');
             params.innerHTML = params.innerHTML.replaceAll('YMMWORD PTR ', '<i class="ptr">YMMWORD  PTR </i> ');
             params.innerHTML = params.innerHTML.replaceAll('XMMWORD PTR ', '<i class="ptr">XMMWORD  PTR </i> ');
@@ -993,8 +1009,21 @@
             params.innerHTML = params.innerHTML.replaceAll('WORD PTR ', '<i class="ptr">WORD  PTR </i> ');
             params.innerHTML = params.innerHTML.replaceAll('BYTE PTR ', '<i class="ptr">BYTE  PTR </i> ');
 
-            if (sym[j].comment)
-              append_element(e, 'i', 'comment', sym[j].comment);
+            if (instruction.comment)
+              append_element(e, 'i', 'comment', instruction.comment);
+
+            if (instruction.isJump) {
+              for (let k = 0; k < sym.length; k++) {
+                let target = sym[k];
+
+                if (target.addr != instruction.target)
+                  continue;
+
+                append_element(addr, 'div', "jmp " + (target.addr < instruction.addr ? "above" : "below"), "").style.setProperty('--offset', Math.abs(k - j));
+                
+                break;
+              }
+            }
           }
         }
 
@@ -1102,8 +1131,10 @@
 
             var loop_selector = document.getElementById('analysis_selector');
             loop_selector.innerHTML = "Select Region to Analyze<br/>";
-
-            if (loops.length == 1) {
+            
+            if (loops.length == 0) {
+              loop_selector.innerHTML = "No looping Regions found!";
+            } else if (loops.length == 1) {
               loop_selector.style.display = "none";
 
               suggest_execution_flow(0);

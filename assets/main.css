@@ -166,7 +166,7 @@ body {
   content: "";
   height: 12pt;
   width: 12pt;
-  left: 5.5pt;
+  left: 2.5pt;
   bottom: 1pt;
   background-color: #aaa;
   -webkit-transition: .4s;
@@ -183,9 +183,9 @@ body {
 }
 
 .selector .switch input:checked+.slider:before {
-  -webkit-transform: translateX(14pt);
-  -ms-transform: translateX(14pt);
-  transform: translateX(14pt);
+  -webkit-transform: translateX(18pt);
+  -ms-transform: translateX(18pt);
+  transform: translateX(18pt);
   background-color: #fff;
 }
 
@@ -642,6 +642,50 @@ i.isa.AVX_VNNI,
   border: 1pt solid var(--colorA);
   opacity: 100%;
   z-index: 10;
+}
+
+.asm_line .addr .jmp.above::before,
+.asm_line .addr .jmp.below::before {
+  content: ' ';
+  border: 2pt solid;
+  border-right: none;
+  width: calc(max(4, min(10, 10 - var(--offset) * 0.25)) * 1pt);
+  right: 15pt;
+  background: transparent;
+  position: absolute;
+  height: calc(var(--offset) * 16pt);
+  color: #fff3;
+}
+
+.asm_line .addr .jmp.below::before {
+  top: -0.5pt;
+}
+
+.asm_line .addr .jmp.above::before {
+  top: calc(var(--offset) * -16pt);
+}
+
+.asm_line .addr .jmp.above::after,
+.asm_line .addr .jmp.below::after {
+  content: ' ';
+  background: transparent;
+  position: absolute;
+  border: 2pt solid;
+  border-left: none;
+  border-bottom: none;
+  transform: rotate(45deg);
+  width: 5pt;
+  height: 5pt;
+  left: -6.25pt;
+  color: #fff3;
+}
+
+.asm_line .addr .jmp.below::after {
+  top: calc(var(--offset) * 16pt - 1.73pt);
+}
+
+.asm_line .addr .jmp.above::after {
+  top: calc(var(--offset) * -16pt - 3pt);
 }
 
 .asm_line.selected .addr .dependency.above::before,
