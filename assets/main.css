@@ -281,6 +281,7 @@ body {
   text-align: right;
   user-select: none;
   font-weight: normal;
+  position: relative;
 }
 
 .disasm .function p.asm_line.matched .addr {
@@ -649,7 +650,7 @@ i.isa.AVX_VNNI,
   content: ' ';
   border: 2pt solid;
   border-right: none;
-  width: calc(max(4, min(10, 10 - var(--offset) * 0.25)) * 1pt);
+  width: calc(max(7, min(18, var(--offset) * 0.5)) * 1pt);
   right: 15pt;
   background: transparent;
   position: absolute;
@@ -686,6 +687,13 @@ i.isa.AVX_VNNI,
 
 .asm_line .addr .jmp.above::after {
   top: calc(var(--offset) * -16pt - 3pt);
+}
+
+.asm_line.selected .addr .jmp.above::before,
+.asm_line.selected .addr .jmp.below::before,
+.asm_line.selected .addr .jmp.above::after,
+.asm_line.selected .addr .jmp.below::after {
+  color: #fff8;
 }
 
 .asm_line.selected .addr .dependency.above::before,
@@ -774,7 +782,7 @@ i.isa.AVX_VNNI,
   line-height: 100%;
   top: 10pt;
   left: 150pt;
-  width: 250pt;
+  width: 275pt;
   background: #151515ee;
   padding: 15pt 20pt;
   color: #bbb;
@@ -1105,4 +1113,8 @@ div.spinner {
 norender {
   position: absolute;
   top: -50pt;
+}
+
+.monaco_line_highlighted {
+  background: #2d383e;
 }

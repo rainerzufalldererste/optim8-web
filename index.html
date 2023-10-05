@@ -90,7 +90,7 @@
         xmlhttp.ontimeout = (e) => {
           failure_callback();
         };
-        
+
         xmlhttp.timeout = 7500;
         xmlhttp.open("GET", url, true);
         xmlhttp.send();
@@ -713,6 +713,7 @@
 
           (() => {
             let minstr = matched_inst;
+            var decorationHandle;
 
             minstr.element.onmouseenter = () => {
               minstr.element.className += " selected";
@@ -720,6 +721,13 @@
               for (let k = 0; k < minstr.flow.lanes.length; k++) {
                 let lane = minstr.flow.lanes[k];
                 lane.className += " selected";
+              }
+
+              if (minstr.line != null) {
+                if (decorationHandle != null)
+                  code_editor.deltaDecorations(decorationHandle, []);
+
+                decorationHandle = code_editor.deltaDecorations([], [{ range: new monaco.Range(minstr.line, 1, minstr.line, 1), options: { isWholeLine: true, className: 'monaco_line_highlighted' } }]);
               }
             };
 
@@ -730,6 +738,11 @@
                 let lane = minstr.flow.lanes[k];
                 lane.className = lane.className.replaceAll(" selected", "");
               }
+
+              if (decorationHandle != null)
+                code_editor.deltaDecorations(decorationHandle, []);
+
+              decorationHandle = null;
             };
 
             for (let j = 0; j < lanes.length; j++) {
@@ -740,6 +753,13 @@
                   let lane = minstr.flow.lanes[k];
                   lane.className += " selected";
                 }
+
+                if (minstr.line != null) {
+                  if (decorationHandle != null)
+                    code_editor.deltaDecorations(decorationHandle, []);
+
+                  decorationHandle = code_editor.deltaDecorations([], [{ range: new monaco.Range(minstr.line, 1, minstr.line, 1), options: { isWholeLine: true, className: 'monaco_line_highlighted' } }]);
+                }
               };
 
               lanes[j].onmouseleave = () => {
@@ -749,6 +769,11 @@
                   let lane = minstr.flow.lanes[k];
                   lane.className = lane.className.replaceAll(" selected", "");
                 }
+
+                if (decorationHandle != null)
+                  code_editor.deltaDecorations(decorationHandle, []);
+
+                decorationHandle = null;
               };
             }
           })();
@@ -893,7 +918,7 @@
                   continue;
 
                 append_element(addr, 'div', "jmp " + (target.addr < data.addr ? "above" : "below"), "").style.setProperty('--offset', Math.abs(k - j));
-                
+
                 break;
               }
             }
@@ -904,7 +929,11 @@
       }
 
       function load_zydec(dump_index) {
-        append_element(document.getElementById('asm'), 'div', 'spinner zydec', '').id = 'zydec_spinner';
+        console.log('requesting zydec ' + dump_index);
+
+        let zydec_spinner = document.getElementById('zydec_spinner');
+        if (zydec_spinner == null || zydec_spinner == undefined)
+          append_element(document.getElementById('asm'), 'div', 'spinner zydec', '').id = 'zydec_spinner';
 
         let bytes = [];
         let func = last_dump[dump_index];
@@ -919,6 +948,7 @@
           let dump_idx = dump_index;
 
           load_url(server_url + 'zydec', (e) => {
+            console.log('got zydec ' + dump_idx);
             let func = last_dump[dump_idx];
             let idx = 0;
             let data = e.zydec.split('\n');
@@ -949,6 +979,7 @@
               display_zydec();
             }
           }, request, () => {
+            console.log('failed to get zydec ' + dump_idx);
             error_zydec();
           });
         })();
@@ -1020,10 +1051,35 @@
                   continue;
 
                 append_element(addr, 'div', "jmp " + (target.addr < instruction.addr ? "above" : "below"), "").style.setProperty('--offset', Math.abs(k - j));
-                
+
                 break;
               }
             }
+
+            (() => {
+              let minstr = instruction;
+              var decorationHandle;
+
+              minstr.element.onmouseenter = () => {
+                minstr.element.className += " selected";
+
+                if (minstr.line != null) {
+                  if (decorationHandle != null)
+                    code_editor.deltaDecorations(decorationHandle, []);
+
+                  decorationHandle = code_editor.deltaDecorations([], [{ range: new monaco.Range(minstr.line, 1, minstr.line, 1), options: { isWholeLine: true, className: 'monaco_line_highlighted' } }]);
+                }
+              };
+
+              minstr.element.onmouseleave = () => {
+                minstr.element.className = minstr.element.className.replaceAll(" selected", "");
+
+                if (decorationHandle != null)
+                  code_editor.deltaDecorations(decorationHandle, []);
+
+                decorationHandle = null;
+              };
+            })();
           }
         }
 
@@ -1079,59 +1135,109 @@
             last_dump = [];
             var last_sym = [];
             var expect_symbol = true;
+            var lastLine = null;
             const jumps = ['jmp', 'ja', 'jae', 'jb', 'jbe', 'jc', 'jcxz', 'jrcxz', 'je', 'jecxz', 'jg', 'jge', 'jl', 'jle', 'jna', 'jnae', 'jnb', 'jnbe', 'jnc', 'jne', 'jnbe', 'jng', 'jnge', 'jnl', 'jnle', 'jno', 'jnp', 'jns', 'jnz', 'jo', 'jp', 'jpe', 'jpo', 'js', 'jz'];
+
+            let addressOffset = 0;
+            let maxAddress = 0;
 
             for (let i = 0; i < dumplines.length; i++) {
               let x = dumplines[i];
 
               if (x == '') {
                 expect_symbol = true;
-              }
-              else if (expect_symbol) {
+              } else if (expect_symbol) {
+                let reused = false;
+
+                if (x.startsWith('Disassembly of section')) {
+                  addressOffset = maxAddress + 32;
+                  addressOffset &= ~(15);
+                  reused = true;
+                }
+                
                 expect_symbol = false;
-                last_sym = [];
-                var prefix = x.split('<')[0];
-                last_sym.name = x.substring(prefix.length);
-                last_dump.push(last_sym);
-              }
-              else {
-                const trimmed = x.trim();
-                const sect = x.split('\t');
-                const addrStr = sect[0].replaceAll(':', '').trim(' ');
-                const addr = parseInt(addrStr, 16);
-                const hex = sect[1].trim(' ');
-                const bytes = hexToBytes(hex);
-                const _asm = sect[2].trim(' ').replaceAll(',', ", ").replaceAll('  ', ' ');
-                const mnemonic = _asm.split(' ')[0];
-                const params = _asm.substring(mnemonic.length).trim();
-                const beforeComment = params.split('#')[0];
-                const comment = params.substring(beforeComment.length);
-                const isJump = jumps.includes(mnemonic);
-                var target;
 
-                if (isJump) {
-                  target = parseInt(beforeComment.split(' ')[0], 16);
-
-                  if (target < addr)
-                    loops.push({ 'start': target, 'end': addr + bytes.length - 1 });
+                if (last_sym.length != 0) {
+                  last_sym = [];
+                  reused = true;
                 }
 
-                last_sym.push({ 'raw': x, 'addrStr': addrStr, 'addr': addr, 'bytes': bytes, 'asm': _asm, 'mnemonic': mnemonic, 'params': beforeComment, 'comment': comment, 'isJump': isJump, 'target': target });
+                var prefix = x.split('<')[0];
+                last_sym.name = x.substring(prefix.length);
+
+                if (!reused)
+                  last_dump.push(last_sym);
+              } else {
+                const trimmed = x.trim();
+                const sect = x.split('\t');
+
+                if (sect.length == 1) { // function start.
+                  lastLine = null;
+                  var colonSect = sect[0].split(':');
+
+                  if (colonSect.length == 1 || colonSect[1].length == 0)
+                    continue;
+
+                  if (colonSect[0].endsWith('.cpp')) {
+                    var filenameParts = colonSect[0].split('/');
+                    var lastPart = filenameParts[filenameParts.length - 1];
+                    var possibleNum = lastPart.substring(0, lastPart.length - 4); // remove '.cpp'
+                    var asInt = parseInt(possibleNum);
+
+                    if (asInt.toString() == possibleNum)
+                      lastLine = parseInt(colonSect[1]);
+                    else
+                      lastLine = null;
+                  }
+                  else {
+                    lastLine = null;
+                  }
+                } else {
+                  const addrStr = sect[0].replaceAll(':', '').trim(' ');
+                  
+                  const addr = parseInt(addrStr, 16) + addressOffset;
+                  maxAddress = Math.max(maxAddress, addr);
+
+                  if (addr < maxAddress) debugger;
+
+                  const hex = sect[1].trim(' ');
+                  const bytes = hexToBytes(hex);
+                  const _asm = sect[2].trim(' ').replaceAll(',', ", ").replaceAll('  ', ' ');
+                  const mnemonic = _asm.split(' ')[0];
+                  const params = _asm.substring(mnemonic.length).trim();
+                  const beforeComment = params.split('#')[0];
+                  const comment = params.substring(beforeComment.length);
+                  const isJump = jumps.includes(mnemonic);
+                  var target;
+
+                  if (isJump) {
+                    var targetStr = beforeComment.split(' ')[0];
+                    target = parseInt(targetStr, 16) + addressOffset;
+
+                    if (targetStr)
+                      beforeComment.replaceAll(targetStr, target.toString());
+
+                    if (target < addr)
+                      loops.push({ 'start': target, 'end': addr + bytes.length - 1 });
+                  }
+
+                  last_sym.push({ 'raw': x, 'addrStr': addr.toString(16), 'addr': addr, 'bytes': bytes, 'asm': _asm, 'mnemonic': mnemonic, 'params': beforeComment, 'comment': comment, 'isJump': isJump, 'target': target, line: lastLine });
+                }
               }
             }
 
             last_mca = null;
-            
+
             let stats = document.getElementById('analysis');
             stats.style.display = 'none';
-            
+
             let flow = document.getElementById('execution_flow');
             flow.style.display = 'none';
             flow.innerHTML = "";
 
             var loop_selector = document.getElementById('analysis_selector');
             loop_selector.innerHTML = "Select Region to Analyze<br/>";
-            
+
             if (loops.length == 0) {
               loop_selector.innerHTML = "No looping Regions found!";
             } else if (loops.length == 1) {
@@ -1147,6 +1253,7 @@
                 (function () {
                   let e_ = e;
                   let idx = i;
+                  var decorationHandle;
 
                   e_.onclick = () => {
                     suggest_execution_flow(idx);
@@ -1155,6 +1262,7 @@
                   e_.onmouseenter = () => {
                     const start = loops[idx].start;
                     const end = loops[idx].end;
+                    let decorations = [];
 
                     for (let j = 0; j < last_dump.length; j++) {
                       let func = last_dump[j];
@@ -1162,10 +1270,16 @@
                       for (let k = 0; k < func.length; k++) {
                         let x = func[k];
 
-                        if (x.addr >= start && x.addr < end)
+                        if (x.addr >= start && x.addr < end) {
                           x.element.className += " hover";
+
+                          if (x.line != null)
+                            decorations.push({ range: new monaco.Range(x.line, 1, x.line, 1), options: { isWholeLine: true, className: 'monaco_line_highlighted' } });
+                        }
                       }
                     }
+
+                    decorationHandle = code_editor.deltaDecorations([], decorations);
                   };
 
                   e_.onmouseleave = () => {
@@ -1182,6 +1296,8 @@
                           x.element.className = x.element.className.replaceAll(" hover", "");
                       }
                     }
+
+                    code_editor.deltaDecorations(decorationHandle, []);
                   };
                 })();
               }
@@ -1539,14 +1655,20 @@
     <div class="cookie_internal">
       <h2>Hi</h2>
       <p>This website doesn't use cookies, but 'localStorage' to store your session and settings in your browser.</p>
-      <p>I don't use that information to try to track you, but if you really really really want to, you can opt out of this feature to get a  clean slate every time you open up a new tab.</p>
-      <p>Your data will be sent to the server to perform the basic functions of this website (like compiling and analyzing your code). I believe hosting companies analyze the traffic, because that's what they do, but there's very little I can do about that.</p>
-      <br/>
-      <p>Anyhow, this is a pretty small project, so if you like it or find it useful, please consider <a href="https://github.com/sponsors/rainerzufalldererste">supporting it on GitHub</a>. Thanks! ❤️</p>
+      <p>I don't use that information to try to track you, but if you really really really want to, you can opt out of
+        this feature to get a clean slate every time you open up a new tab.</p>
+      <p>Your data will be sent to the server to perform the basic functions of this website (like compiling and
+        analyzing your code). I believe hosting companies analyze the traffic, because that's what they do, but there's
+        very little I can do about that.</p>
+      <br />
+      <p>Anyhow, this is a pretty small project, so if you like it or find it useful, please consider <a
+          href="https://github.com/sponsors/rainerzufalldererste">supporting it on GitHub</a>. Thanks! ❤️</p>
       <br>
       <br>
-      <i class="cookie_consent" onclick="javascript:consent_to_cookies()">Store my Session and use Cookie-esque technology</i>
-      <i class="cookie_no_consent" onclick="javascript:do_not_consent_to_cookies()">Fresh slate every single time, don't use Cookie-esque technology</i>
+      <i class="cookie_consent" onclick="javascript:consent_to_cookies()">Store my Session and use Cookie-esque
+        technology</i>
+      <i class="cookie_no_consent" onclick="javascript:do_not_consent_to_cookies()">Fresh slate every single time, don't
+        use Cookie-esque technology</i>
     </div>
   </div>
 </body>
