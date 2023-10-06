@@ -1210,14 +1210,11 @@
                     var targetStr = beforeComment.split(' ')[0];
                     target = parseInt(targetStr, 16) + addressOffset;
 
-                    if (targetStr)
-                      beforeComment.replaceAll(targetStr, target.toString());
-
                     if (target < addr)
                       loops.push({ 'start': target, 'end': addr + bytes.length - 1 });
                   }
 
-                  last_sym.push({ 'raw': x, 'addrStr': addr.toString(16), 'addr': addr, 'bytes': bytes, 'asm': _asm, 'mnemonic': mnemonic, 'params': beforeComment, 'comment': comment, 'isJump': isJump, 'target': target, line: lastLine });
+                  last_sym.push({ 'raw': x, 'addrStr': addrStr, 'addr': addr, 'bytes': bytes, 'asm': _asm, 'mnemonic': mnemonic, 'params': beforeComment, 'comment': comment, 'isJump': isJump, 'target': target, line: lastLine });
                 }
               }
             }
@@ -1244,7 +1241,7 @@
               loop_selector.style.display = "inherit";
 
               for (let i = 0; i < loops.length; i++) {
-                let e = append_element(loop_selector, 'div', 'loop_selection', loops[i].start.toString(16) + " - " + loops[i].end.toString(16));
+                let e = append_element(loop_selector, 'div', 'loop_selection', loops[i].start.toString(16) + " - " + loops[i].end.toString(16) + " (" + (loops[i].end - loops[i].start).toString(16) + ")");
 
                 (function () {
                   let e_ = e;
@@ -1531,32 +1528,32 @@
         <select id="march" onchange="javascript:content_changed();">
           <option value="none" selected="selected">none</option>
           <optgroup label="Intel">
-            <option value="adl">Alderlake</option>
-            <option value="brw">Broadwell</option>
-            <option value="cnl">Cannonlake</option>
-            <option value="ccl">Cascadelake</option>
-            <option value="cpl">Cooperlake</option>
-            <option value="elr">EmeraldRapids</option>
-            <option value="gmt">Goldmont</option>
-            <option value="gmp">GoldmontPlus</option>
-            <option value="gdr">GrandRidge</option>
-            <option value="gtr">GraniteRapids</option>
-            <option value="hsw">Haswell</option>
-            <option value="ilc">IcelakeClient</option>
-            <option value="lcs">IcelakeServer</option>
-            <option value="ivb">IvyBridge</option>
-            <option value="mtl">Meteorlake</option>
-            <option value="rtl">Raptorlake</option>
-            <option value="rkl">Rocketlake</option>
-            <option value="sdb">Sandybridge</option>
-            <option value="spr">SapphireRapids</option>
-            <option value="srf">Sierraforest</option>
-            <option value="svm">Silvermont</option>
-            <option value="slc">SkylakeClient</option>
+            <option value="sdb">Sandybridge</option> <!-- January 9, 2011 -->
+            <option value="ivb">IvyBridge</option> <!-- April 29, 2012 -->
+            <option value="hsw">Haswell</option> <!-- June 4, 2013 -->
+            <option value="svm">Silvermont</option> <!-- Q3 2013 -->
+            <option value="brw">Broadwell</option> <!-- October 27, 2014 -->
+            <option value="slc">SkylakeClient</option> <!-- August 5, 2015 -->
             <option value="slx">SkylakeX</option>
             <option value="sls">SkylakeServer</option>
-            <option value="tgl">Tigerlake</option>
-            <option value="trm">Tremont</option>
+            <option value="gmt">Goldmont</option> <!-- Q3 2016 -->
+            <option value="gmp">GoldmontPlus</option> <!-- Q4 2017 -->
+            <option value="cnl">Cannonlake</option> <!-- May 15, 2018 -->
+            <option value="ccl">Cascadelake</option> <!-- April 2, 2019 -->
+            <option value="ilc">IcelakeClient</option> <!-- September 2019 -->
+            <option value="lcs">IcelakeServer</option>
+            <option value="cpl">Cooperlake</option> <!-- June 18, 2020 -->
+            <option value="trm">Tremont</option> <!-- Q1 2020 -->
+            <option value="tgl">Tigerlake</option> <!-- September 2, 2020 -->
+            <option value="rkl">Rocketlake</option> <!-- March 30, 2021 -->
+            <option value="adl">Alderlake</option> <!-- November 4, 2021 -->
+            <option value="rtl">Raptorlake</option> <!-- 	October 20, 2022 -->
+            <option value="spr">SapphireRapids</option> <!-- January 10, 2023 -->
+            <option value="elr">EmeraldRapids</option> <!-- December 14, 2023 -->
+            <option value="mtl">Meteorlake</option> <!-- TBD -->
+            <option value="gtr">GraniteRapids</option> <!-- TBD -->
+            <option value="gdr">GrandRidge</option> <!-- TBD -->
+            <option value="srf">Sierraforest</option> <!-- TBD -->
           </optgroup>
           <optgroup label="AMD">
             <option value="zn1">Zen1</option>
@@ -1591,38 +1588,39 @@
             Flow</b>
           <select id="mca_arch" onchange="javascript:mca_changed();">
             <optgroup label="Intel">
-              <option value="adl">Alderlake</option>
-              <option value="brw">Broadwell</option>
-              <option value="cnl">Cannonlake</option>
-              <option value="ccl">Cascadelake</option>
-              <option value="cpl">Cooperlake</option>
-              <option value="elr">EmeraldRapids</option>
-              <option value="gmt">Goldmont</option>
-              <option value="gmp">GoldmontPlus</option>
-              <option value="gdr">GrandRidge</option>
-              <option value="gtr">GraniteRapids</option>
-              <option value="hsw">Haswell</option>
-              <option value="ilc">IcelakeClient</option>
-              <option value="lcs">IcelakeServer</option>
-              <option value="ivb">IvyBridge</option>
-              <option value="mtl">Meteorlake</option>
-              <option value="rtl">Raptorlake</option>
-              <option value="rkl">Rocketlake</option>
-              <option value="sdb">Sandybridge</option>
-              <option value="spr">SapphireRapids</option>
-              <option value="srf">Sierraforest</option>
-              <option value="svm">Silvermont</option>
-              <option value="slc">SkylakeClient</option>
+              <option value="sdb">Sandybridge</option> <!-- January 9, 2011 -->
+              <option value="ivb">IvyBridge</option> <!-- April 29, 2012 -->
+              <option value="hsw">Haswell</option> <!-- June 4, 2013 -->
+              <option value="svm">Silvermont</option> <!-- Q3 2013 -->
+              <option value="brw">Broadwell</option> <!-- October 27, 2014 -->
+              <option value="slc">SkylakeClient</option> <!-- August 5, 2015 -->
               <option value="slx">SkylakeX</option>
               <option value="sls">SkylakeServer</option>
-              <option value="tgl">Tigerlake</option>
-              <option value="trm">Tremont</option>
+              <option value="gmt">Goldmont</option> <!-- Q3 2016 -->
+              <option value="gmp">GoldmontPlus</option> <!-- Q4 2017 -->
+              <option value="cnl">Cannonlake</option> <!-- May 15, 2018 -->
+              <option value="ccl">Cascadelake</option> <!-- April 2, 2019 -->
+              <option value="ilc">IcelakeClient</option> <!-- September 2019 -->
+              <option value="lcs">IcelakeServer</option>
+              <option value="cpl">Cooperlake</option> <!-- June 18, 2020 -->
+              <option value="trm">Tremont</option> <!-- Q1 2020 -->
+              <option value="tgl">Tigerlake</option> <!-- September 2, 2020 -->
+              <option value="rkl">Rocketlake</option> <!-- March 30, 2021 -->
+              <option value="adl">Alderlake</option> <!-- November 4, 2021 -->
+              <option value="rtl">Raptorlake</option> <!-- 	October 20, 2022 -->
+              <option value="spr">SapphireRapids</option> <!-- January 10, 2023 -->
+              <option value="elr">EmeraldRapids</option> <!-- December 14, 2023 -->
+              <option value="mtl">Meteorlake</option> <!-- TBD -->
+              <option value="gtr">GraniteRapids</option> <!-- TBD -->
+              <option value="gdr">GrandRidge</option> <!-- TBD -->
+              <option value="srf">Sierraforest</option> <!-- TBD -->
             </optgroup>
             <optgroup label="AMD">
               <option value="zn1">Zen1</option>
               <option value="zn2">Zen2</option>
               <option value="zn3">Zen3</option>
               <option value="zn4" selected="selected">Zen4</option>
+              <!-- zen 5 -->
             </optgroup>
           </select>
         </div>

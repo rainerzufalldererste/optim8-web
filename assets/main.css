@@ -650,7 +650,7 @@ i.isa.AVX_VNNI,
   content: ' ';
   border: 2pt solid;
   border-right: none;
-  width: calc(max(7, min(18, var(--offset) * 0.5)) * 1pt);
+  width: calc(max(7, min(14, var(--offset) * 0.5)) * 1pt);
   right: 15pt;
   background: transparent;
   position: absolute;
