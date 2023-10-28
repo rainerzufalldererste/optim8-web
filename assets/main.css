@@ -139,7 +139,7 @@ body {
   width: 35pt;
   height: calc(100% - 6pt);
   margin: 2pt 4pt 2pt 4pt;
-  top: -2pt;
+  top: 0pt;
 }
 
 .selector .switch input {

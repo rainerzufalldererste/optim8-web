@@ -874,7 +874,8 @@
 
             let sect = data.dec.split('// ');
 
-            var addr = append_element(n, 'b', 'addr dec', data.addr.toString(16));
+            var addr = append_element(n, 'b', 'addr dec', data.addrStr);
+            append_element(n, 'i', 'bytes', bytesToHex(data.bytes));
 
             var dec = append_element(n, 'b', 'dec', sect[0]);
 
@@ -1194,8 +1195,6 @@
                   const addr = parseInt(addrStr, 16) + addressOffset;
                   maxAddress = Math.max(maxAddress, addr);
 
-                  if (addr < maxAddress) debugger;
-
                   const hex = sect[1].trim(' ');
                   const bytes = hexToBytes(hex);
                   const _asm = sect[2].trim(' ').replaceAll(',', ", ").replaceAll('  ', ' ');
@@ -1211,7 +1210,7 @@
                     target = parseInt(targetStr, 16) + addressOffset;
 
                     if (target < addr)
-                      loops.push({ 'start': target, 'end': addr + bytes.length - 1 });
+                      loops.push({ 'start': target, 'end': addr + bytes.length - 1, 'offset': addressOffset, 'symbol': last_sym.name });
                   }
 
                   last_sym.push({ 'raw': x, 'addrStr': addrStr, 'addr': addr, 'bytes': bytes, 'asm': _asm, 'mnemonic': mnemonic, 'params': beforeComment, 'comment': comment, 'isJump': isJump, 'target': target, line: lastLine });
@@ -1241,7 +1240,8 @@
               loop_selector.style.display = "inherit";
 
               for (let i = 0; i < loops.length; i++) {
-                let e = append_element(loop_selector, 'div', 'loop_selection', loops[i].start.toString(16) + " - " + loops[i].end.toString(16) + " (" + (loops[i].end - loops[i].start).toString(16) + ")");
+                let e = append_element(loop_selector, 'div', 'loop_selection', (loops[i].start - loops[i].offset).toString(16) + " - " + (loops[i].end - loops[i].offset).toString(16) + " (" + (loops[i].end - loops[i].start).toString(16) + ")");
+                e.title = loops[i].symbol;
 
                 (function () {
                   let e_ = e;
