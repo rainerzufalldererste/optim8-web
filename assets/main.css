@@ -241,9 +241,32 @@ body {
   width: max-content;
 }
 
+.disasm .sym_list {
+  display: block;
+  margin: 5pt 0pt;
+  background: #262d2f;
+  padding: 5pt 13.5pt;
+}
+
+.disasm div.sym_list c.sym_ref {
+  cursor: pointer;
+  display: block;
+  margin: 4.5pt 2pt;
+  font-size: 12pt;
+  color: #7b9696;
+  text-decoration: underline;
+  text-decoration-color: #607272;
+}
+
+.disasm div.sym_list c.sym_ref:hover {
+  color: #fff;
+  text-decoration-color: #7b9696;
+}
+
 .disasm .function h3.symbol {
   font-size: 100%;
   color: #fff;
+  cursor: pointer;
 }
 
 .disasm .function p.asm_line {

@@ -1013,11 +1013,43 @@
         var asm = document.getElementById('asm');
         asm.innerHTML = "";
 
+        var sym_list = append_element(asm, 'div', 'sym_list', '');
+        sym_list.id = "sym_list";
+
+        if (last_dump.length == 0)
+          sym_list.style.display = 'none';
+
         for (let i = 0; i < last_dump.length; i++) {
           let sym = last_dump[i];
 
+          if (last_dump.length > 0)
+          {
+            var link = append_element(sym_list, 'c', 'sym_ref', sym.name);
+            link.id = "asm_" + i + "_link";
+            (() => {
+              var target = "asm_" + i;
+              link.onclick = () => {
+                var target_elem = document.getElementById(target);
+                var scroll_parent = document.getElementById('asm').parentElement;
+                scroll_parent.scrollTop = target_elem.offsetTop - 80;
+              };
+            })();
+          }
+
           var container = append_element(asm, 'div', 'function', '');
+          container.id = "asm_" + i;
           sym.element = append_element(container, 'h3', 'symbol', sym.name);
+          
+          if (last_dump.length > 0) {
+            (() => {
+              var target = "sym_list";
+              sym.element.onclick = () => {
+                var target_elem = document.getElementById(target);
+                var scroll_parent = document.getElementById('asm').parentElement;
+                scroll_parent.scrollTop = target_elem.offsetTop - 80;
+              };
+            })();
+          }
 
           for (let j = 0; j < sym.length; j++) {
             let instruction = sym[j];
