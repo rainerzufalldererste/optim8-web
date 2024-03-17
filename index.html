@@ -1149,18 +1149,24 @@
                 if (x.startsWith('Disassembly of section')) {
                   addressOffset = maxAddress + 32;
                   addressOffset &= ~(15);
+                  last_sym = [];
                   reused = true;
                 }
                 
                 expect_symbol = false;
 
-                if (last_sym.length != 0) {
+                var prefix = x.split('<')[0];
+                var sym_name = x.substring(prefix.length);
+
+                if (!reused && last_sym.length != 0) {
+                  if (last_sym.name != undefined && last_sym.name != sym_name)
+                    reused = true;
+
                   last_sym = [];
-                  reused = true;
+                  reused = false;
                 }
 
-                var prefix = x.split('<')[0];
-                last_sym.name = x.substring(prefix.length);
+                last_sym.name = sym_name;
 
                 if (!reused)
                   last_dump.push(last_sym);
